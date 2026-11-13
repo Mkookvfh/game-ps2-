@@ -1,36 +1,40 @@
-name: Build Mueang Isara PS2
+
+name: Build Mueang Isara PS2
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs‑on: ubuntu‑latest
-    container: ghcr.io/ps2dev/ps2dev:latest
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/ps2dev/ps2dev:latest
     env:
       PS2DEV: /usr/local/ps2dev
       PS2SDK: /usr/local/ps2dev/ps2sdk
       GSKIT: /usr/local/ps2dev/gsKit
+
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install packages
-        run: apk add --no‑cache make git gcc
-
-      - name: Download & build gsKit
+      - name: Install gsKit
         run: |
-          cd /usr/local/ps2dev
-          git clone https://github.com/ps2dev/gsKit.git
-          cd gsKit
+          if [ ! -d "$GSKIT/.git" ]; then
+            git clone --depth 1 https://github.com/ps2dev/gsKit.git "$GSKIT"
+          fi
+          cd "$GSKIT"
           make
           make install
 
-      - name: Compile project
-        run: gmake
+      - name: Build PS2 ELF
+        run: make clean && make
 
-      - name: Upload compiled ELF
-        uses: actions/upload‑artifact@v4
+      - name: Upload PS2 build
+        uses: actions/upload-artifact@v4
         with:
-          name: ps2_game
+          name: MueangIsara-PS2
           path: MueangIsara.elf
+          if-no-files-found: error
