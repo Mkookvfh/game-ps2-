@@ -1,8 +1,9 @@
-# PS2SDK EE build. Requires PS2SDK environment and gsKit installed.
+# Minimal PS2SDK EE build for the Mueang Isara boot test.
+# This starter program does not use gsKit, dmaKit, pad, or libm.
 EE_BIN  = MueangIsara.elf
 EE_OBJS = src/main.o
-EE_LIBS = -lgskit -ldmakit -lpad -lm
-EE_INCS += -I$(PS2SDK)/ee/include -I$(PS2SDK)/ee/gs/include
+EE_LIBS =
+EE_INCS += -I$(PS2SDK)/ee/include
 
 all: $(EE_BIN)
 
