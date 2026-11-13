@@ -1,21 +1,24 @@
-name: Build Mueang Isara PS2
+name: Build Mueang Isara PS2
 on:
   push:
     branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs‑on: ubuntu‑latest
     container: ghcr.io/ps2dev/ps2dev:latest
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
 
+      - name: Install make
+        run: apt‑get update && apt‑get install ‑y make
+
       - name: Compile project
         run: make
 
       - name: Upload compiled ELF
-        uses: actions/upload-artifact@v4
+        uses: actions/upload‑artifact@v4
         with:
           name: Mueang‑Isara‑PS2
           path: MueangIsara.elf
