@@ -1,8 +1,9 @@
-# Mueang Isara PS2 EE build (gsKit + dmaKit + pad)
+# Mueang Isara PS2 EE build (gskit + dmakit + pad)
 EE_BIN  = MueangIsara.elf
 EE_OBJS = src/main.o
 
-EE_LIBS = -lgsKit -ldmaKit -lpad -lm
+# ✅ ชื่อเล่นตรงกับ ps2dev
+EE_LIBS = -lgskit -ldmakit -lpad -lm
 
 EE_INCS += -I$(PS2SDK)/ee/include
 EE_INCS += -I$(PS2SDK)/common/include
