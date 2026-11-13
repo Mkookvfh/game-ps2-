@@ -30,23 +30,23 @@ jobs:
       - name: Build with PS2SDK Docker image
         shell: bash
         run: |
-          docker run --rm \
-            -v "$GITHUB_WORKSPACE:/src" \
-            -w /src \
-            ps2dev/ps2dev:latest \
-            sh -lc 'make -j2'
+          docker run --rm \\
+            -v "$GITHUB_WORKSPACE:/src" \\
+            -w /src \\
+            ps2dev/ps2dev:latest \\
+            sh -lc 'apk add --no-cache make && make -j2'
 
       - name: Collect build outputs
         if: always()
         shell: bash
         run: |
           mkdir -p build-artifacts
-          find . -type f \( \
-            -iname '*.elf' -o \
-            -iname '*.iso' -o \
-            -iname '*.bin' -o \
-            -iname '*.map' \
-          \) -not -path './build-artifacts/*' -exec cp --parents {} build-artifacts/ \;
+          find . -type f \\( \\
+            -iname '*.elf' -o \\
+            -iname '*.iso' -o \\
+            -iname '*.bin' -o \\
+            -iname '*.map' \\
+          \\) -not -path './build-artifacts/*' -exec cp --parents {} build-artifacts/ \\;
           if [ -z "$(find build-artifacts -type f -print -quit)" ]; then
             echo "No ELF/ISO/BIN/MAP output was found."
           fi
