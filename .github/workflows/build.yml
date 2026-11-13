@@ -34,7 +34,7 @@ jobs:
             -v "$GITHUB_WORKSPACE:/src" \
             -w /src \
             ps2dev/ps2dev:latest \
-            bash -lc 'make -j2'
+            sh -lc 'make -j2'
 
       - name: Collect build outputs
         if: always()
@@ -51,7 +51,7 @@ jobs:
             echo "No ELF/ISO/BIN/MAP output was found."
           fi
 
-      - name: Upload build artifacts
+      - name: Upload build outputs
         if: always()
         uses: actions/upload-artifact@v4
         with:
