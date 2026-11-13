@@ -1,91 +1,19 @@
-name: Build PS2 game
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-
-permissions:
-  contents: read
+name: Build Mueang Isara PS2
+on: [push]
 
 jobs:
   build:
-    name: Compile with PS2SDK and gsKit
-    runs-on: ubuntu-latest
+    runs‑on: ubuntu‑latest
+    container: ghcr.io/ps2dev/ps2dev:latest
     steps:
-      - name: Check out source
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Build gsKit and game with PS2SDK
-        shell: bash
-        run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src ps2dev/ps2dev:latest sh -lc '
-            set -eu
-            apk add --no-cache make git cmake
-            export PS2DEV="${PS2DEV:-/usr/local/ps2dev}"
-            export PS2SDK="${PS2SDK:-$PS2DEV/ps2sdk}"
-            export GSKIT="$PS2DEV/gsKit"
-            export PATH="$PS2DEV/ee/bin:$PS2DEV/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
+      - name: Build MueangIsara
+        run: make
 
-            # The PS2Dev image may already contain gsKit without a .git folder.
-            # Reuse it when its Makefile exists; clone only if the source is absent.
-            if [ ! -f "$GSKIT/Makefile" ]; then
-              rm -rf "$GSKIT"
-              git clone --depth 1 https://github.com/ps2dev/gsKit.git "$GSKIT"
-            fi
-            cd "$GSKIT"
-            make
-            make install
-            cd /src
-
-            command -v mips64r5900el-ps2-elf-gcc
-            test -f src/main.c
-            make clean
-            make -j2
-
-            ELF_PATH="$(find /src -type f -name "*.elf" -not -path "*/.git/*" -print -quit)"
-            if [ -z "$ELF_PATH" ]; then
-              echo "ERROR: Build completed but no .elf file was produced."
-              find /src -maxdepth 4 -type f -print
-              exit 1
-            fi
-            if [ "$ELF_PATH" != "/src/MueangIsara.elf" ]; then
-              cp "$ELF_PATH" /src/MueangIsara.elf
-            fi
-            test -s /src/MueangIsara.elf
-            file /src/MueangIsara.elf || true
-          '
-
-      - name: Package USB test files
-        if: success()
-        shell: bash
-        run: |
-          set -euo pipefail
-          ELF_PATH="$(find . -type f -name 'MueangIsara.elf' -not -path './.git/*' -print -quit)"
-          if [ -z "$ELF_PATH" ]; then
-            echo "::error::MueangIsara.elf is missing; the compile step did not produce the executable."
-            exit 1
-          fi
-          mkdir -p opl-package
-          cp "$ELF_PATH" opl-package/MueangIsara.elf
-          cat > opl-package/README.txt <<'EOF'
-          Mueang Isara PS2 prototype
-          This is a homebrew ELF test executable, not an OPL ISO.
-          Copy MueangIsara.elf to a FAT32 USB drive and launch it with uLaunchELF
-          or another compatible ELF launcher. Native OPL game installation
-          requires a separately prepared OPL-supported game image.
-          EOF
-          (cd opl-package && zip -r ../MueangIsara-PS2-USB-test.zip .)
-
-      - name: Upload build outputs
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Upload MueangIsara.elf
+        uses: actions/upload‑artifact@v4
         with:
-          name: mueang-isara-ps2-build
-          path: |
-            MueangIsara.elf
-            MueangIsara-PS2-USB-test.zip
-          if-no-files-found: warn
-          retention-days: 14
+          name: Mueang‑Isara‑PS2
+          path: MueangIsara.elf
