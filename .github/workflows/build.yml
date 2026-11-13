@@ -29,7 +29,10 @@ jobs:
             export GSKIT="$PS2DEV/gsKit"
             export PATH="$PS2DEV/ee/bin:$PS2DEV/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
 
-            if [ ! -d "$GSKIT/.git" ]; then
+            # The PS2Dev image may already contain gsKit without a .git folder.
+            # Reuse it when its Makefile exists; clone only if the source is absent.
+            if [ ! -f "$GSKIT/Makefile" ]; then
+              rm -rf "$GSKIT"
               git clone --depth 1 https://github.com/ps2dev/gsKit.git "$GSKIT"
             fi
             cd "$GSKIT"
