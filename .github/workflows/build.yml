@@ -22,15 +22,32 @@ jobs:
         shell: bash
         run: |
           if [ ! -f Makefile ] && [ ! -f makefile ]; then
-            echo "::error::No Makefile found in the repository root."
-            echo "Add a PS2SDK-compatible Makefile before running this workflow."
+            echo "::error::No Makefile found in repository root."
+            exit 1
+          fi
+          if [ ! -f src/main.c ]; then
+            echo "::error::Missing src/main.c."
             exit 1
           fi
 
       - name: Build with PS2SDK Docker image
         shell: bash
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src ps2dev/ps2dev:latest sh -lc 'apk add --no-cache make && make -j2'
+          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src ps2dev/ps2dev:latest sh -lc '
+            apk add --no-cache make
+            export PS2DEV="${PS2DEV:-/usr/local/ps2dev}"
+            export PS2SDK="${PS2SDK:-$PS2DEV/ps2sdk}"
+            export PATH="$PS2DEV/ee/bin:$PS2DEV/bin:$PS2DEV/iop/bin:$PS2DEV/dvp/bin:$PS2SDK/bin:$PATH"
+            echo "PS2DEV=$PS2DEV"
+            echo "PS2SDK=$PS2SDK"
+            command -v mips64r5900el-ps2-elf-gcc || {
+              echo "ERROR: PS2 EE compiler not found. Checking toolchain directories:"
+              ls -la "$PS2DEV/ee/bin" || true
+              exit 127
+            }
+            mips64r5900el-ps2-elf-gcc --version
+            make -j2
+          '
 
       - name: Collect build outputs
         if: always()
