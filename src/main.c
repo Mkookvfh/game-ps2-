@@ -6,8 +6,8 @@
 #include <tamtypes.h>
 #include <kernel.h>
 #include <libpad.h>
-#include <gsKit.h>
-#include <dmaKit.h>
+#include <gskit.h>
+#include <dmakit.h>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
