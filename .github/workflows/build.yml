@@ -7,6 +7,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: ghcr.io/ps2dev/ps2dev:latest
+    env:
+      PS2DEV: /usr/local/ps2dev
+      PS2SDK: /usr/local/ps2dev/ps2sdk
+      GSKIT: /usr/local/ps2dev/gsKit
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
