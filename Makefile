@@ -2,10 +2,8 @@
 EE_BIN  = MueangIsara.elf
 EE_OBJS = src/main.o
 
-# ✅ แก้เป็น -lgsKit (ตรงกับ #include <gsKit.h> ใน main.c)
 EE_LIBS = -lgsKit -ldmaKit -lpad -lm
 
-# ✅ เพิ่ม include path ให้ครบ
 EE_INCS += -I$(PS2SDK)/ee/include
 EE_INCS += -I$(PS2SDK)/common/include
 EE_INCS += -I$(PS2SDK)/ports/include
