@@ -1,0 +1,61 @@
+name: Build PS2 game
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Compile with PS2SDK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Check project build files
+        shell: bash
+        run: |
+          if [ ! -f Makefile ] && [ ! -f makefile ]; then
+            echo "::error::No Makefile found in the repository root."
+            echo "Add a PS2SDK-compatible Makefile before running this workflow."
+            exit 1
+          fi
+
+      - name: Build with PS2SDK Docker image
+        shell: bash
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/src" \
+            -w /src \
+            ps2dev/ps2dev:latest \
+            bash -lc 'make -j2'
+
+      - name: Collect build outputs
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p build-artifacts
+          find . -type f \( \
+            -iname '*.elf' -o \
+            -iname '*.iso' -o \
+            -iname '*.bin' -o \
+            -iname '*.map' \
+          \) -not -path './build-artifacts/*' -exec cp --parents {} build-artifacts/ \;
+          if [ -z "$(find build-artifacts -type f -print -quit)" ]; then
+            echo "No ELF/ISO/BIN/MAP output was found."
+          fi
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mueang-isara-ps2-build
+          path: build-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
