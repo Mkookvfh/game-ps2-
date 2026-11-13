@@ -22,6 +22,7 @@ jobs:
         shell: bash
         run: |
           docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src ps2dev/ps2dev:latest sh -lc '
+            set -eu
             apk add --no-cache make git cmake
             export PS2DEV="${PS2DEV:-/usr/local/ps2dev}"
             export PS2SDK="${PS2SDK:-$PS2DEV/ps2sdk}"
@@ -40,21 +41,38 @@ jobs:
             test -f src/main.c
             make clean
             make -j2
-            test -s MueangIsara.elf
-            file MueangIsara.elf || true
+
+            ELF_PATH="$(find /src -type f -name "*.elf" -not -path "*/.git/*" -print -quit)"
+            if [ -z "$ELF_PATH" ]; then
+              echo "ERROR: Build completed but no .elf file was produced."
+              find /src -maxdepth 4 -type f -print
+              exit 1
+            fi
+            if [ "$ELF_PATH" != "/src/MueangIsara.elf" ]; then
+              cp "$ELF_PATH" /src/MueangIsara.elf
+            fi
+            test -s /src/MueangIsara.elf
+            file /src/MueangIsara.elf || true
           '
 
-      - name: Package OPL test files
+      - name: Package USB test files
         if: success()
         shell: bash
         run: |
+          set -euo pipefail
+          ELF_PATH="$(find . -type f -name 'MueangIsara.elf' -not -path './.git/*' -print -quit)"
+          if [ -z "$ELF_PATH" ]; then
+            echo "::error::MueangIsara.elf is missing; the compile step did not produce the executable."
+            exit 1
+          fi
           mkdir -p opl-package
-          cp MueangIsara.elf opl-package/
+          cp "$ELF_PATH" opl-package/MueangIsara.elf
           cat > opl-package/README.txt <<'EOF'
           Mueang Isara PS2 prototype
-          Copy MueangIsara.elf to a USB drive formatted as FAT32.
-          This ELF is a homebrew test executable; it is not a full OPL game ISO.
-          Launch through a compatible ELF launcher/uLaunchELF, or package as an OPL-supported format later.
+          This is a homebrew ELF test executable, not an OPL ISO.
+          Copy MueangIsara.elf to a FAT32 USB drive and launch it with uLaunchELF
+          or another compatible ELF launcher. Native OPL game installation
+          requires a separately prepared OPL-supported game image.
           EOF
           (cd opl-package && zip -r ../MueangIsara-PS2-USB-test.zip .)
 
