@@ -11,14 +11,14 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install make
-        run: apt-get update && apt-get install -y make
+      - name: Install dependencies (Alpine apk)
+        run: apk add --no-cache make
 
       - name: Compile project
-        run: make
+        run: gmake
 
       - name: Upload compiled ELF
         uses: actions/upload-artifact@v4
         with:
-          name: Mueang-Isara-PS2
+          name: ps2_game
           path: MueangIsara.elf
