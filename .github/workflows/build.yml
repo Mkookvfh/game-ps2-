@@ -1,11 +1,11 @@
-name: Build Mueang Isara PS2
+name: Build Mueang Isara PS2
 on:
   push:
     branches: [ main ]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs‑on: ubuntu‑latest
     container: ghcr.io/ps2dev/ps2dev:latest
     env:
       PS2DEV: /usr/local/ps2dev
@@ -15,14 +15,22 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install dependencies (Alpine apk)
-        run: apk add --no-cache make
+      - name: Install packages
+        run: apk add --no‑cache make git gcc
+
+      - name: Download & build gsKit
+        run: |
+          cd /usr/local/ps2dev
+          git clone https://github.com/ps2dev/gsKit.git
+          cd gsKit
+          make
+          make install
 
       - name: Compile project
         run: gmake
 
       - name: Upload compiled ELF
-        uses: actions/upload-artifact@v4
+        uses: actions/upload‑artifact@v4
         with:
           name: ps2_game
           path: MueangIsara.elf
