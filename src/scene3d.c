@@ -29,6 +29,10 @@ static float jump_velocity = 0.0f;
 static int is_jumping = 0;
 
 static float walk_time = 0.0f;
+/* Character animation state */
+static int is_running = 0;
+static float body_bob = 0.0f;
+static float body_sway = 0.0f;
 
 /* PS2 controller buffer: 64-byte aligned */
 static unsigned char padBuf[256]
@@ -216,8 +220,11 @@ static void draw_player_rect(
     float cs = cosf(player_yaw);
     float sn = sinf(player_yaw);
 
-    float y0 = bottom + player_y;
-    float y1 = top + player_y;
+    float y0 = bottom + player_y + body_bob;
+float y1 = top + player_y + body_bob;
+
+left += body_sway;
+right += body_sway;
 
     Vec3 a = {
         player_x + left * cs + local_z * sn,
@@ -276,7 +283,8 @@ static void draw_player_limb(
         float ry = lx[i] * sn + ly[i] * c + pivot_y;
 
         p[i].x = player_x + rx * body_c + local_z * body_s;
-        p[i].y = ry + player_y;
+        p[i].y = ry + player_y + body_bob;
+rx += body_sway;
         p[i].z = player_z - rx * body_s + local_z * body_c;
     }
 
@@ -312,14 +320,14 @@ static void draw_player(GSGLOBAL *gs)
     const u64 hood =
         GS_SETREG_RGBAQ(22,27,38,0x80,0);
 
-    /* Joint animation */
-    float leg_swing = is_jumping
-        ? 0.18f
-        : sinf(walk_time) * 0.42f;
+    /* Walk / Run animation */
+float leg_swing = is_jumping
+    ? 0.18f
+    : sinf(walk_time) * (is_running ? 0.62f : 0.38f);
 
-    float arm_swing = is_jumping
-        ? -0.48f
-        : -sinf(walk_time) * 0.30f;
+float arm_swing = is_jumping
+    ? -0.48f
+    : -sinf(walk_time) * (is_running ? 0.48f : 0.24f);
 
     /* Legs */
     draw_player_limb(gs,
@@ -483,9 +491,27 @@ float yaw_diff = atan2f(
 
 camera_yaw += yaw_diff * 0.12f;
 
-        walk_time += running ? 0.25f : 0.15f;
-    }
+        is_running = running;
 
+walk_time += is_running ? 0.32f : 0.18f;
+
+body_bob = sinf(walk_time * 2.0f) *
+    (is_running ? 0.045f : 0.025f);
+
+body_sway = sinf(walk_time) *
+    (is_running ? 0.025f : 0.012f);
+    }
+else {
+    is_running = 0;
+    body_bob *= 0.75f;
+    body_sway *= 0.75f;
+
+    if (body_bob < 0.001f && body_bob > -0.001f)
+        body_bob = 0.0f;
+
+    if (body_sway < 0.001f && body_sway > -0.001f)
+        body_sway = 0.0f;
+}
     /* Jump */
     if (jump_pressed && !is_jumping) {
         is_jumping = 1;
