@@ -312,6 +312,119 @@ static void draw_city_building(
     }
 }
 
+
+/* =========================================
+   CITY MAP V2 - ROADS AND ALLEYS
+   ========================================= */
+
+static void draw_ground_quad(
+    GSGLOBAL *gs,
+    float left,
+    float right,
+    float front,
+    float back,
+    u64 color
+) {
+    Vec3 a={left,-1.455f,front};
+    Vec3 b={right,-1.455f,front};
+    Vec3 c={right,-1.455f,back};
+    Vec3 d={left,-1.455f,back};
+
+    draw_triangle(gs,a,b,c,color);
+    draw_triangle(gs,a,c,d,color);
+}
+
+static void draw_city_roads(
+    GSGLOBAL *gs,
+    int city
+) {
+    const u64 road =
+        GS_SETREG_RGBAQ(75,72,68,0x80,0);
+
+    const u64 alley =
+        GS_SETREG_RGBAQ(100,94,82,0x80,0);
+
+    const u64 sidewalk =
+        GS_SETREG_RGBAQ(135,125,105,0x80,0);
+
+    const u64 road_line =
+        GS_SETREG_RGBAQ(190,175,130,0x80,0);
+
+    /* Venice: canal replaces the central road */
+    if(city==1) {
+        draw_ground_quad(
+            gs,-3.7f,-2.05f,-2.0f,18.0f,
+            sidewalk
+        );
+
+        draw_ground_quad(
+            gs,2.05f,3.7f,-2.0f,18.0f,
+            sidewalk
+        );
+    }
+    else {
+        /* Main road */
+        draw_ground_quad(
+            gs,-1.8f,1.8f,-2.0f,18.0f,
+            road
+        );
+
+        /* Road borders */
+        draw_ground_quad(
+            gs,-2.05f,-1.8f,-2.0f,18.0f,
+            sidewalk
+        );
+
+        draw_ground_quad(
+            gs,1.8f,2.05f,-2.0f,18.0f,
+            sidewalk
+        );
+
+        /* Center road marking */
+        {
+            int z;
+
+            for(z=0;z<9;z++) {
+                float front=-1.0f+z*2.0f;
+
+                draw_ground_quad(
+                    gs,-0.035f,0.035f,
+                    front,front+0.65f,
+                    road_line
+                );
+            }
+        }
+    }
+
+    /* Left and right alleys */
+    draw_ground_quad(
+        gs,-3.8f,-2.9f,-2.0f,18.0f,
+        alley
+    );
+
+    draw_ground_quad(
+        gs,2.9f,3.8f,-2.0f,18.0f,
+        alley
+    );
+
+    /* Cross street */
+    draw_ground_quad(
+        gs,-8.0f,8.0f,7.5f,8.5f,
+        road
+    );
+
+    /* Small connecting paths */
+    draw_ground_quad(
+        gs,-5.0f,-3.8f,7.5f,8.5f,
+        sidewalk
+    );
+
+    draw_ground_quad(
+        gs,3.8f,5.0f,7.5f,8.5f,
+        sidewalk
+    );
+}
+
 static void draw_city_map(GSGLOBAL *gs)
 {
     const WorldEra *era=world_current_era();
@@ -333,6 +446,8 @@ static void draw_city_map(GSGLOBAL *gs)
 
     const u64 window=GS_SETREG_RGBAQ(
         25,30,40,0x80,0
+    /* Draw streets and alleys */
+draw_city_roads(gs,world_city_index());
     );
 
     switch(world_city_index()) {
