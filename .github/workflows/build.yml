@@ -1,10 +1,17 @@
 
-name: MUEANG ISARA PS2 Build
+name: MUEANG ISARA PS2 Boot Build
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/**'
+      - 'Makefile'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -16,6 +23,7 @@ jobs:
       PS2DEV: /usr/local/ps2dev
       PS2SDK: /usr/local/ps2dev/ps2sdk
       GSKIT: /usr/local/ps2dev/gsKit
+      EE_CC: mips64r5900el-ps2-elf-gcc
 
     steps:
       - name: Checkout
@@ -23,32 +31,35 @@ jobs:
 
       - name: Setup PS2DEV
         run: |
-          echo "$PS2DEV/bin" >> $GITHUB_PATH
-          echo "$PS2DEV/ee/bin" >> $GITHUB_PATH
-          echo "$PS2SDK/bin" >> $GITHUB_PATH
+          echo "$PS2DEV/bin" >> "$GITHUB_PATH"
+          echo "$PS2DEV/ee/bin" >> "$GITHUB_PATH"
+          echo "$PS2SDK/bin" >> "$GITHUB_PATH"
 
-            - name: Verify SDK
+      - name: Verify SDK
         run: |
-          set -e
+          set -eu
           test -f "$PS2SDK/samples/Makefile.pref"
           test -f "$PS2SDK/samples/Makefile.eeglobal"
           test -d "$GSKIT/include"
           test -d "$GSKIT/lib"
-          command -v mips64r5900el-ps2-elf-gcc
+          command -v "$EE_CC"
 
       - name: Build ELF
         run: |
+          set -eu
           make clean
-          make
+          make EE_CC="$EE_CC"
+          test -s MueangIsara.elf
 
       - name: Verify ELF
         run: |
-          test -s MueangIsara.elf
+          set -eu
           file MueangIsara.elf
+          readelf -h MueangIsara.elf | grep -E 'Machine:.*MIPS'
 
       - name: Upload PS2 ELF
         uses: actions/upload-artifact@v4
         with:
-          name: MueangIsara-PS2
+          name: MueangIsara-PS2-Boot
           path: MueangIsara.elf
           if-no-files-found: error
