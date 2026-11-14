@@ -1,73 +1,24 @@
-name: Build PS2 game
+name: Build‑Test
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
-  workflow_dispatch:
-permissions:
-  contents: read
+    branches: [ main ]
+
 jobs:
   build:
-    name: Compile with PS2SDK + gsKit
     runs‑on: ubuntu‑latest
     steps:
-      - name: Checkout source
+      - name: Checkout source code
         uses: actions/checkout@v4
 
-      - name: Build gsKit + Game
-        shell: bash
+      - name: Install compiler tools
         run: |
-          docker run --rm -v "$GITHUB_WORKSPACE:/src" -w /src ps2dev/ps2dev:latest sh -lc '
-            apk add --no-cache make git
-            export PS2DEV="${PS2DEV:-/usr/local/ps2dev}"
-            export PS2SDK="${PS2SDK:-$PS2DEV/ps2sdk}"
-            export GSKIT="$PS2DEV/gsKit"
-            export PATH="$PS2DEV/ee/bin:$PS2DEV/bin:$PS2SDK/bin:$PATH"
+          sudo apt‑get update
+          sudo apt‑get install ‑y gcc make
 
-            if [ ! -d "$GSKIT/.git" ]; then
-              git clone --depth 1 https://github.com/ps2dev/gsKit.git "$GSKIT"
-            fi
-            cd "$GSKIT"
-            make
-            make install
-            cd /src
-            make clean
-            make -j2
-            test -s MueangIsara.elf
-          '
+      - name: Compile project
+        run: make
 
-      - name: Package OPL APPS files
-        if: success()
-        shell: bash
-        run: |
-          mkdir -p opl‑package
-          cp MueangIsara.elf opl‑package/
-          cat > opl‑package/title.cfg <<'EOF'
-title=Mueang Isara
-boot=mass:APPS/MUEANG_ISARA/MueangIsara.elf
-EOF
-          cat > opl‑package/README.txt <<'EOF'
-Mueang Isara PS2 Prototype
-✅ วิธีใช้สำหรับ OPL APPS
-1. Format USB เป็น FAT32
-2. สร้างโฟลเดอร์ APPS/MUEANG_ISARA/
-3. วาง MueangIsara.elf + title.cfg เข้าไป
-4. เปิด OPL → แท็บ APPS → เล่น
-✅ ควบคุม
-‑ D‑pad = เคลื่อนที่
-‑ R1 + D‑pad = วิ่งเร็ว
-‑ X = ยืนยันเมนู
-‑ START = กลับเมนูหลัก
-EOF
-          (cd opl‑package && zip -r ../MueangIsara‑PS2‑OPL.zip .)
-
-      - name: Upload Artifact
-        if: always()
-        uses: actions/upload‑artifact@v4
-        with:
-          name: mueang‑isara‑build
-          path: |
-            MueangIsara.elf
-            MueangIsara‑PS2‑OPL.zip
-          retention‑days: 14
+      - name: Run test program
+        run: ./game_test
