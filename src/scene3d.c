@@ -34,6 +34,7 @@ static unsigned char padBuf[256]
 
 static struct padButtonStatus pad;
 static int pad_ready = 0;
+static int analog_requested = 0;
 
 /* Cube */
 static const Vec3 cube[8] = {
@@ -321,94 +322,111 @@ static void draw_player(GSGLOBAL *gs)
 }
 
 /* Controller input */
+
 static void update_player(void)
 {
-    float move_x=0.0f;
-    float move_z=0.0f;
+    float move_x = 0.0f;
+    float move_z = 0.0f;
 
-    int running=0;
-    int jump_pressed=0;
+    int running = 0;
+    int jump_pressed = 0;
 
-    if(pad_ready && padGetState(0,0)==PAD_STATE_STABLE) {
+    if (pad_ready &&
+        padGetState(0, 0) == PAD_STATE_STABLE)
+    {
+        /* Enable DualShock analog mode once */
+        if (!analog_requested) {
+            padSetMainMode(
+                0, 0,
+                PAD_MMODE_DUALSHOCK,
+                PAD_MMODE_LOCK
+            );
+            analog_requested = 1;
+        }
 
-        if(padRead(0,0,&pad)) {
+        if (padRead(0, 0, &pad)) {
 
             /* D-pad */
-            if(!(pad.btns & PAD_LEFT))
-                move_x-=1.0f;
+            if (!(pad.btns & PAD_LEFT))
+                move_x -= 1.0f;
 
-            if(!(pad.btns & PAD_RIGHT))
-                move_x+=1.0f;
+            if (!(pad.btns & PAD_RIGHT))
+                move_x += 1.0f;
 
-            if(!(pad.btns & PAD_UP))
-                move_z+=1.0f;
+            if (!(pad.btns & PAD_UP))
+                move_z += 1.0f;
 
-            if(!(pad.btns & PAD_DOWN))
-                move_z-=1.0f;
+            if (!(pad.btns & PAD_DOWN))
+                move_z -= 1.0f;
 
-            /* Left analog stick */
-            int lx=(int)pad.ljoy_h-128;
-            int ly=(int)pad.ljoy_v-128;
+            /* Analog stick with dead zone */
+            int lx = (int)pad.ljoy_h;
+            int ly = (int)pad.ljoy_v;
 
-            if(lx < -35) move_x=-1.0f;
-            if(lx > 35) move_x=1.0f;
+            if (lx > 0 && lx < 93)
+                move_x = -1.0f;
+            else if (lx > 163)
+                move_x = 1.0f;
 
-            if(ly < -35) move_z=1.0f;
-            if(ly > 35) move_z=-1.0f;
+            if (ly > 0 && ly < 93)
+                move_z = 1.0f;
+            else if (ly > 163)
+                move_z = -1.0f;
 
-            /* R1 = run */
-            if(!(pad.btns & PAD_R1))
-                running=1;
+            /* R1 = Run */
+            if (!(pad.btns & PAD_R1))
+                running = 1;
 
-            /* Cross = jump */
-            if(!(pad.btns & PAD_CROSS))
-                jump_pressed=1;
+            /* Cross = Jump */
+            if (!(pad.btns & PAD_CROSS))
+                jump_pressed = 1;
         }
     }
 
-    float speed=running?0.085f:0.045f;
+    float speed = running ? 0.085f : 0.045f;
 
-    if(move_x!=0.0f || move_z!=0.0f) {
-
-        float length=sqrtf(
-            move_x*move_x+move_z*move_z
+    if (move_x != 0.0f || move_z != 0.0f) {
+        float length = sqrtf(
+            move_x * move_x +
+            move_z * move_z
         );
 
-        if(length>0.0f) {
-            move_x/=length;
-            move_z/=length;
+        if (length > 0.0f) {
+            move_x /= length;
+            move_z /= length;
         }
 
-        player_x+=move_x*speed;
-        player_z+=move_z*speed;
+        player_x += move_x * speed;
+        player_z += move_z * speed;
 
-        walk_time+=running?0.25f:0.15f;
+        walk_time += running ? 0.25f : 0.15f;
     }
 
     /* Jump */
-    if(jump_pressed && !is_jumping) {
-        is_jumping=1;
-        jump_velocity=0.18f;
+    if (jump_pressed && !is_jumping) {
+        is_jumping = 1;
+        jump_velocity = 0.18f;
     }
 
-    if(is_jumping) {
-        player_y+=jump_velocity;
-        jump_velocity-=0.012f;
+    if (is_jumping) {
+        player_y += jump_velocity;
+        jump_velocity -= 0.012f;
 
-        if(player_y<=0.0f) {
-            player_y=0.0f;
-            jump_velocity=0.0f;
-            is_jumping=0;
+        if (player_y <= 0.0f) {
+            player_y = 0.0f;
+            jump_velocity = 0.0f;
+            is_jumping = 0;
         }
     }
 
     /* Keep player inside test area */
-    if(player_x < -8.0f) player_x=-8.0f;
-    if(player_x > 8.0f) player_x=8.0f;
+    if (player_x < -8.0f) player_x = -8.0f;
+    if (player_x > 8.0f) player_x = 8.0f;
 
-    if(player_z < -1.0f) player_z=-1.0f;
-    if(player_z > 16.0f) player_z=16.0f;
+    if (player_z < -1.0f) player_z = -1.0f;
+    if (player_z > 16.0f) player_z = 16.0f;
 }
+
 
 /* Rotating test cube */
 static void draw_cube(
