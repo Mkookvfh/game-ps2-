@@ -4,9 +4,9 @@
  * loading screen and start menu.  Prototype geometry is procedural.
  *
  * Fixes in this version:
- *  - load the IOP pad modules (SIO2MAN / PADMAN) before padInit, so the
- *    program no longer hangs on a black screen
- *  - init the screen first and draw one frame before touching the pad
+ *  - load the IOP pad modules (SIO2MAN / PADMAN) before padInit
+ *  - init the screen first and draw one frame BEFORE loading the pad
+ *    modules, so a controller problem can never leave the screen black
  *  - pad buttons are active-low, so flip them before use
  *  - START now works even when the player is standing still
  */
@@ -230,13 +230,6 @@ static void input_update(void) {
 int main(int argc, char *argv[]) {
     (void)argc; (void)argv;
 
-    /* The pad library only works after the IOP controller modules are loaded.
-     * Without this, padInit() waits forever and the screen stays black. */
-    SifInitRpc(0);
-    int sio = SifLoadModule("rom0:SIO2MAN", 0, NULL);
-    int pad = SifLoadModule("rom0:PADMAN", 0, NULL);
-    padReady = (sio >= 0 && pad >= 0);
-
     gsGlobal = gsKit_init_global();
     if (gsGlobal == NULL) {
         return 1;
@@ -260,11 +253,18 @@ int main(int argc, char *argv[]) {
     gsKit_set_test(gsGlobal, GS_ZTEST_OFF);
     gsKit_mode_switch(gsGlobal, GS_ONESHOT);
 
-    /* Show one frame before starting the pad, so a pad problem can never
-     * hide the screen again. */
+    /* Show one frame BEFORE touching the controller, so a controller or
+     * module problem can never hide the screen again. */
     draw_loading();
     gsKit_queue_exec(gsGlobal);
     gsKit_sync_flip(gsGlobal);
+
+    /* The pad library only works after the IOP controller modules are
+     * loaded. Without them padInit() waits forever. */
+    SifInitRpc(0);
+    int sio = SifLoadModule("rom0:SIO2MAN", 0, NULL);
+    int pad = SifLoadModule("rom0:PADMAN", 0, NULL);
+    padReady = (sio >= 0 && pad >= 0);
 
     if (padReady) {
         padInit(0);
