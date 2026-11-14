@@ -1,32 +1,52 @@
-name: Build PS2 Homebrew Game
+
+name: MUEANG ISARA PS2 Build
+
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu‑latest
+    runs-on: ubuntu-latest
+    container:
+      image: ps2dev/ps2dev:latest
+
+    env:
+      PS2DEV: /usr/local/ps2dev
+      PS2SDK: /usr/local/ps2dev/ps2sdk
+      GSKIT: /usr/local/ps2dev/gsKit
+
     steps:
-      - name: Checkout source
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install dependencies for ps2dev
+      - name: Setup PS2DEV
         run: |
-          sudo apt‑get update
-          sudo apt‑get install ‑y git wget cmake make gcc g++ patch bzip2
+          echo "$PS2DEV/bin" >> $GITHUB_PATH
+          echo "$PS2DEV/ee/bin" >> $GITHUB_PATH
+          echo "$PS2SDK/bin" >> $GITHUB_PATH
 
-      - name: Setup PS2DEV environment variables
+      - name: Verify SDK
         run: |
-          echo "PS2DEV=${{ github.workspace }}/ps2dev" >> $GITHUB_ENV
-          echo "PS2SDK=${{ github.workspace }}/ps2dev/ps2sdk" >> $GITHUB_ENV
-          echo "PATH=${{ github.workspace }}/ps2dev/bin:${{ github.workspace }}/ps2dev/ps2sdk/bin:$PATH" >> $GITHUB_ENV
+          test -f "$PS2SDK/samples/Makefile.pref"
+          test -d "$GSKIT/include"
+          test -d "$GSKIT/lib"
+          command -v ee-gcc
 
-      - name: Clone and build ps2dev (ps2‑toolchain)
+      - name: Build ELF
         run: |
-          git clone https://github.com/ps2dev/ps2‑toolchain.git
-          cd ps2‑toolchain
-          ./build.sh
+          make clean
+          make
 
-      - name: Compile your PS2 project using Makefile
-        run: make
+      - name: Verify ELF
+        run: |
+          test -s MueangIsara.elf
+          file MueangIsara.elf
+
+      - name: Upload PS2 ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: MueangIsara-PS2
+          path: MueangIsara.elf
+          if-no-files-found: error
