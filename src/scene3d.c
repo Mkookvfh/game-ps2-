@@ -750,6 +750,24 @@ if(climb_pressed &&
             next_z=6.25f;
         }
 
+                /* Second wall collision: front side */
+        if(fabsf(next_x)<2.2f &&
+           player_z<=WALL2_BLOCK_Z &&
+           next_z>WALL2_BLOCK_Z &&
+           player_y<WALL2_HEIGHT*0.65f)
+        {
+            next_z=WALL2_BLOCK_Z;
+        }
+
+        /* Second wall collision: back side */
+        if(fabsf(next_x)<2.2f &&
+           player_z>=WALL2_BACK+0.40f &&
+           next_z<WALL2_BACK+0.40f &&
+           player_y<WALL2_HEIGHT*0.65f)
+        {
+            next_z=WALL2_BACK+0.40f;
+        }
+
         player_x=next_x;
         player_z=next_z;
 
