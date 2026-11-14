@@ -554,11 +554,12 @@ int drop_pressed=0;
             /* Triangle = Climb */
             if(!(pad.btns & PAD_TRIANGLE))
                 triangle_down=1;
-climb_pressed = triangle_down && !triangle_prev;
-drop_pressed = cross_down && !cross_prev;
+            climb_pressed = triangle_down && !triangle_prev;
+            jump_pressed = cross_down && !cross_prev;
+            drop_pressed = jump_pressed;
 
-triangle_prev = triangle_down;
-cross_prev = cross_down;
+            triangle_prev = triangle_down;
+            cross_prev = cross_down;
         }
     }
 
@@ -613,11 +614,21 @@ if(is_hanging && climb_pressed) {
     return;
 }
 
-/* Hanging animation */
+/* Hanging: move along the wall */
 if(is_hanging) {
     player_y = -0.30f + sinf(walk_time * 2.0f) * 0.025f;
     player_z = WALL_FRONT - 0.12f;
     player_yaw = 0.0f;
+
+    if(move_x < -0.1f)
+        player_x -= 0.035f;
+    else if(move_x > 0.1f)
+        player_x += 0.035f;
+
+    if(player_x < WALL_LEFT + 0.35f)
+        player_x = WALL_LEFT + 0.35f;
+    if(player_x > WALL_RIGHT - 0.35f)
+        player_x = WALL_RIGHT - 0.35f;
 
     body_bob = 0.0f;
     body_sway = 0.0f;
@@ -749,6 +760,23 @@ if(climb_pressed &&
             jump_velocity=0.0f;
             is_jumping=0;
         }
+    }
+
+        /* Automatically catch the wall while airborne */
+    if(is_jumping &&
+       fabsf(player_x) < 2.2f &&
+       player_z >= PLAYER_BLOCK_Z - 0.20f &&
+       player_z <= PLAYER_BLOCK_Z + 0.12f &&
+       player_y > 0.12f &&
+       cosf(player_yaw) > 0.65f)
+    {
+        is_jumping = 0;
+        jump_velocity = 0.0f;
+        is_hanging = 1;
+        player_z = WALL_FRONT - 0.12f;
+        player_y = -0.30f;
+        body_bob = 0.0f;
+        body_sway = 0.0f;
     }
 
     /* World bounds */
