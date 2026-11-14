@@ -1,4 +1,5 @@
-name: GSKit Diagnostic Build
+
+name: Direct libgraph Diagnostic Build
 
 on:
   workflow_dispatch:
@@ -26,9 +27,7 @@ jobs:
       - name: Check PS2SDK environment
         run: |
           echo "PS2SDK=$PS2SDK"
-          echo "GSKIT=$GSKIT"
           test -d "$PS2SDK"
-          test -d "$GSKIT"
 
       - name: Install build tools
         shell: sh
@@ -36,20 +35,20 @@ jobs:
           apk add --no-cache build-base
           make --version
 
-      - name: Build GSKit diagnostic
+      - name: Build diagnostic
         run: |
           make -C tests clean
           make -C tests
 
       - name: Verify ELF
         run: |
-          test -s tests/GSKitTest.elf
-          file tests/GSKitTest.elf
-          file tests/GSKitTest.elf | grep -q MIPS
+          test -s tests/GraphTest.elf
+          file tests/GraphTest.elf
+          file tests/GraphTest.elf | grep -q MIPS
 
       - name: Upload diagnostic ELF
         uses: actions/upload-artifact@v4
         with:
-          name: GSKitTest
-          path: tests/GSKitTest.elf
+          name: GraphTest
+          path: tests/GraphTest.elf
           if-no-files-found: error
