@@ -1,0 +1,22 @@
+git clone https://github.com/Mkookvfh/game-ps2-.git
+cd game-ps2-
+
+git switch -c test/ai-write-check-20261114
+
+mkdir -p tests
+
+cat > tests/write_test.txt <<'EOF'
+Mueang Isara - GitHub Write Permission Test
+Repository: Mkookvfh/game-ps2-
+Test: AI GitHub Write Access
+Date: 2026-11-14
+
+This is a separate test file.
+No game source files were modified.
+EOF
+
+git add tests/write_test.txt
+
+git commit -m "test: verify GitHub write access"
+
+git push -u origin test/ai-write-check-20261114
