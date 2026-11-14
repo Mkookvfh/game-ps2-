@@ -19,7 +19,7 @@ This is a fan‑made project for personal development and testing only. Not for 
 pkg update
 pkg upgrade
 pkg install gcc make
-git clone https://github.com/Mkookvfh/New‑Game‑Assassin‑s‑By‑Clauss.git
+git clone https://github.com/Mkookvfh/game-ps2-/tree/main
 cd New‑Game‑Assassin‑s‑By‑Clauss
 make
 ./game_test
