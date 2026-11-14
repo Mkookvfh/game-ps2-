@@ -220,7 +220,13 @@ int main(int argc, char *argv[]) {
 
     gsGlobal = gsKit_init_global();
 
-/* ใช้ค่า Video Mode ที่ GSKit ตรวจจับให้อัตโนมัติ */
+/* กำหนดโหมด NTSC ให้ครบ */
+gsGlobal->Mode = GS_MODE_NTSC;
+gsGlobal->Interlace = GS_INTERLACED;
+gsGlobal->Field = GS_FIELD;
+gsGlobal->Width = 640;
+gsGlobal->Height = 448;
+
 gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
 
     dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,
