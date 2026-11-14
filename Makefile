@@ -7,7 +7,7 @@ EE_INCS += -I$(GSKIT)/include
 
 EE_LDFLAGS += -L$(GSKIT)/lib
 
-EE_LIBS += -lgskit -ldmakit -lm
+EE_LIBS += -lgskit -ldmakit -lpad -lm
 
 .PHONY: all clean
 
