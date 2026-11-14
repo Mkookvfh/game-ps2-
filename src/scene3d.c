@@ -74,8 +74,8 @@ static int project_world(
     float camera_x = dx * cs - dz * sn;
     float camera_z = 8.0f + dx * sn + dz * cs;
 
-    float cp = cosf(CAMERA_PITCH);
-    float sp = sinf(CAMERA_PITCH);
+    float cs = cosf(camera_yaw);
+    float sn = sinf(camera_yaw);
 
     float cy = dy * cp - camera_z * sp;
     float cz = dy * sp + camera_z * cp;
