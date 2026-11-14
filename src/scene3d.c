@@ -6,6 +6,7 @@
 #include <math.h>
 #include <sifrpc.h>
 #include <loadfile.h>
+#include "world.h"
 
 #define CENTER_X 320.0f
 #define CENTER_Y 224.0f
@@ -74,6 +75,9 @@ static unsigned char padBuf[256]
 static struct padButtonStatus pad;
 static int pad_ready = 0;
 static int analog_requested = 0;
+
+static int select_prev = 0;
+static int start_prev = 0;
 
 /* Cube */
 static const Vec3 cube[8] = {
@@ -169,14 +173,28 @@ static void draw_rect(
 /* Ground */
 static void draw_ground(GSGLOBAL *gs)
 {
-    const u64 grass1 =
-        GS_SETREG_RGBAQ(55,75,43,0x80,0);
+    const WorldEra *era = world_current_era();
 
-    const u64 grass2 =
-        GS_SETREG_RGBAQ(68,83,48,0x80,0);
+    const u64 grass1 = GS_SETREG_RGBAQ(
+        era->ground_r,
+        era->ground_g,
+        era->ground_b,
+        0x80, 0
+    );
 
-    const u64 grid =
-        GS_SETREG_RGBAQ(105,115,75,0x80,0);
+    const u64 grass2 = GS_SETREG_RGBAQ(
+        (era->ground_r + 18 > 255) ? 255 : era->ground_r + 18,
+        (era->ground_g + 12 > 255) ? 255 : era->ground_g + 12,
+        (era->ground_b + 8 > 255) ? 255 : era->ground_b + 8,
+        0x80, 0
+    );
+
+    const u64 grid = GS_SETREG_RGBAQ(
+        era->accent_r,
+        era->accent_g,
+        era->accent_b,
+        0x80, 0
+    );
 
     for(int z=9;z>=0;z--) {
         for(int x=0;x<10;x++) {
@@ -539,6 +557,19 @@ int drop_pressed=0;
         }
 
         if(padRead(0,0,&pad)) {
+        /* SELECT = next city, START = next historical era */
+    int select_down = !(pad.btns & PAD_SELECT);
+    int start_down = !(pad.btns & PAD_START);
+
+    if(select_down && !select_prev)
+        world_next_city();
+
+    if(start_down && !start_prev)
+        world_next_era();
+
+    select_prev = select_down;
+    start_prev = start_down;
+
             /* D-pad */
             if(!(pad.btns&PAD_LEFT))
                 move_x-=1.0f;
@@ -955,29 +986,36 @@ int main(void)
     gsKit_init_screen(gs);
     gsKit_mode_switch(gs,GS_PERSISTENT);
 
-    const u64 sky =
-        GS_SETREG_RGBAQ(25,40,65,0x80,0);
-
     float angle=0.0f;
 
-    while(1) {
-        update_player();
+while(1) {
+    update_player();
 
-        gsKit_clear(gs,sky);
+    /* Sky color changes with selected era */
+    const WorldEra *era = world_current_era();
 
-        draw_ground(gs);
-        draw_parkour_wall(gs);
-        draw_player(gs);
-        draw_cube(gs,angle);
+    const u64 sky = GS_SETREG_RGBAQ(
+        era->sky_r,
+        era->sky_g,
+        era->sky_b,
+        0x80, 0
+    );
 
-        gsKit_queue_exec(gs);
-        gsKit_sync_flip(gs);
+    gsKit_clear(gs,sky);
 
-        angle+=0.025f;
+    draw_ground(gs);
+    draw_parkour_wall(gs);
+    draw_player(gs);
+    draw_cube(gs,angle);
 
-        if(angle>=2.0f*PI)
-            angle-=2.0f*PI;
-    }
+    gsKit_queue_exec(gs);
+    gsKit_sync_flip(gs);
+
+    angle+=0.025f;
+
+    if(angle>=2.0f*PI)
+        angle-=2.0f*PI;
+}
 
     return 0;
 }
