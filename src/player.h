@@ -1,8 +1,6 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include <math.h>
-
 #define ANIM_IDLE        0
 #define ANIM_WALK        1
 #define ANIM_RUN         2
