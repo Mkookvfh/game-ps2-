@@ -218,7 +218,13 @@ int main(int argc, char *argv[]) {
     padInit(0);
     padPortOpen(0,0,padBuf);
 
-    /* ใช้ค่า Video Mode เริ่มต้นที่ GSKit ตรวจจับ */
+    /* Initialize GSKit before accessing gsGlobal */
+gsGlobal = gsKit_init_global();
+
+if (gsGlobal == NULL) {
+    return 1;
+}
+
 gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
 
     dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,
