@@ -1,7 +1,7 @@
 
 EE_BIN = MueangIsara.elf
 
-EE_OBJS = src/scene3d.o
+EE_OBJS = src/scene3d.o src/world.o
 
 EE_INCS += -I$(GSKIT)/include
 
