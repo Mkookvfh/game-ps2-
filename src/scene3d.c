@@ -1129,8 +1129,39 @@ if(climb_pressed &&
             next_z=WALL2_BACK+0.40f;
         }
 
-        player_x=next_x;
-        player_z=next_z;
+        /* Rooftop building collision */
+if(player_y < 0.72f) {
+    const float margin = 0.18f;
+
+    /* Left building */
+    if(next_x > -6.2f-margin &&
+       next_x < -3.7f+margin &&
+       player_z > 7.0f-margin &&
+       player_z < 9.0f+margin)
+        next_x = player_x;
+
+    if(next_z > 7.0f-margin &&
+       next_z < 9.0f+margin &&
+       next_x > -6.2f-margin &&
+       next_x < -3.7f+margin)
+        next_z = player_z;
+
+    /* Right building */
+    if(next_x > 3.7f-margin &&
+       next_x < 6.2f+margin &&
+       player_z > 7.0f-margin &&
+       player_z < 9.0f+margin)
+        next_x = player_x;
+
+    if(next_z > 7.0f-margin &&
+       next_z < 9.0f+margin &&
+       next_x > 3.7f-margin &&
+       next_x < 6.2f+margin)
+        next_z = player_z;
+}
+
+player_x=next_x;
+player_z=next_z;
 
         player_yaw=atan2f(move_x,move_z);
 
@@ -1162,22 +1193,35 @@ if(climb_pressed &&
             body_sway=0.0f;
     }
 
-    /* Jump */
-    if(jump_pressed && !is_jumping) {
-        is_jumping=1;
-        jump_velocity=0.18f;
-    }
+    /* Jump, rooftop landing and falling */
+float target_ground =
+    city_roof_height(player_x,player_z);
 
-    if(is_jumping) {
-        player_y+=jump_velocity;
-        jump_velocity-=0.012f;
+/* Walk off rooftop */
+if(!is_jumping &&
+   player_y > target_ground + 0.05f) {
+    is_jumping = 1;
+    jump_velocity = 0.0f;
+}
 
-        if(player_y<=0.0f) {
-            player_y=0.0f;
-            jump_velocity=0.0f;
-            is_jumping=0;
-        }
+/* Jump */
+if(jump_pressed && !is_jumping) {
+    is_jumping = 1;
+    jump_velocity = 0.18f;
+}
+
+/* Gravity and landing */
+if(is_jumping) {
+    player_y += jump_velocity;
+    jump_velocity -= 0.012f;
+
+    if(player_y <= target_ground &&
+       jump_velocity < 0.0f) {
+        player_y = target_ground;
+        jump_velocity = 0.0f;
+        is_jumping = 0;
     }
+}
 
         /* Automatically catch either wall while airborne */
 if(is_jumping &&
