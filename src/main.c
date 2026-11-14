@@ -214,15 +214,36 @@ static void input_update(void) {
 }
 
 int main(int argc, char *argv[]) {
-    (void)argc; (void)argv;
+    (void)argc;
+    (void)argv;
+
     padInit(0);
-    padPortOpen(0,0,padBuf);
+    padPortOpen(0, 0, padBuf);
 
-    /* Initialize GSKit before accessing gsGlobal */
-gsGlobal = gsKit_init_global();
+    /* Initialize GSKit */
+    gsGlobal = gsKit_init_global();
 
-if (gsGlobal == NULL) {
-    return 1;
+    if (gsGlobal == NULL) {
+        return 1;
+    }
+
+    gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
+
+    dmaKit_init(
+        D_CTRL_RELE_OFF,
+        D_CTRL_MFD_OFF,
+        D_CTRL_STS_UNSPEC,
+        D_CTRL_STD_OFF,
+        D_CTRL_RCYC_8,
+        1 << DMA_CHANNEL_GIF
+    );
+
+    dmaKit_chan_init(DMA_CHANNEL_GIF);
+
+    gsKit_init_screen(gsGlobal);
+    gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
+
+    /* ส่วน game loop เดิมอยู่ต่อจากนี้ */
 }
 
 gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
@@ -231,7 +252,7 @@ gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
                 D_CTRL_STD_OFF,D_CTRL_RCYC_8,1 << DMA_CHANNEL_GIF);
     dmaKit_chan_init(DMA_CHANNEL_GIF);
     gsKit_init_screen(gsGlobal);
-    gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
+    gsKwit_mode_switch(gsGlobal, GS_PERSISTENT);
 
     menuState = 0;
     for (;;) {
