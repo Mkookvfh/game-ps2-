@@ -2,23 +2,24 @@ name: Build‑Test
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
   build:
     runs‑on: ubuntu‑latest
     steps:
-      - name: Checkout source code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install compiler tools
+      - name: Install Tools
         run: |
-          sudo apt‑get update
-          sudo apt‑get install ‑y gcc make
+          sudo apt update
+          sudo apt install -y gcc make
 
-      - name: Compile project
+      - name: List files (เช็คว่ามีไฟล์ครบ)
+        run: ls -la src/
+
+      - name: Compile
         run: make
 
-      - name: Run test program
+      - name: Run
         run: ./game_test
