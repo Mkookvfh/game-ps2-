@@ -409,6 +409,14 @@ player_z += move_z * speed;
 /* Turn player toward movement direction */
 player_yaw = atan2f(move_x, move_z);
 
+/* Smooth camera rotation */
+float yaw_diff = atan2f(
+    sinf(player_yaw - camera_yaw),
+    cosf(player_yaw - camera_yaw)
+);
+
+camera_yaw += yaw_diff * 0.12f;
+
         walk_time += running ? 0.25f : 0.15f;
     }
 
