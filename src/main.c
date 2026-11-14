@@ -218,13 +218,8 @@ int main(int argc, char *argv[]) {
     padInit(0);
     padPortOpen(0,0,padBuf);
 
-    gsGlobal = gsKit_init_global();
-    gsGlobal->Mode = GS_MODE_NTSC;
-    gsGlobal->Width = 640;
-    gsGlobal->Height = 448;
-    gsGlobal->PSM = GS_PSM_CT16;
-    gsGlobal->PSMZ = GS_PSMZ_16;
-    gsGlobal->ZBuffering = GS_SETTING_ON;
+    /* ใช้ค่า Video Mode เริ่มต้นที่ GSKit ตรวจจับ */
+gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
 
     dmaKit_init(D_CTRL_RELE_OFF,D_CTRL_MFD_OFF,D_CTRL_STS_UNSPEC,
                 D_CTRL_STD_OFF,D_CTRL_RCYC_8,1 << DMA_CHANNEL_GIF);
