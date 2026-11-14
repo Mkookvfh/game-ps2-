@@ -1,0 +1,49 @@
+name: GSKit Diagnostic Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - fix/gs-diagnostic-20261114
+    paths:
+      - 'tests/**'
+      - '.github/workflows/gs-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ghcr.io/ps2dev/ps2dev:latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check PS2SDK environment
+        run: |
+          echo "PS2SDK=$PS2SDK"
+          echo "GSKIT=$GSKIT"
+          test -d "$PS2SDK"
+          test -d "$GSKIT"
+
+      - name: Build GSKit diagnostic
+        run: |
+          make -C tests clean
+          make -C tests
+
+      - name: Verify ELF
+        run: |
+          test -s tests/GSKitTest.elf
+          file tests/GSKitTest.elf
+          file tests/GSKitTest.elf | grep -q MIPS
+
+      - name: Upload diagnostic ELF
+        uses: actions/upload-artifact@v4
+        with:
+          name: GSKitTest
+          path: tests/GSKitTest.elf
+          if-no-files-found: error
