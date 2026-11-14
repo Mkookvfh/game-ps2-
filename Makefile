@@ -1,20 +1,15 @@
-
-EE_BIN  = MueangIsara.elf
+EE_BIN = MueangIsara.elf
 EE_OBJS = src/main.o
 
 EE_INCS += -I$(GSKIT)/include
-EE_INCS += -I$(PS2SDK)/ee/include
-EE_INCS += -I$(PS2SDK)/common/include
-EE_INCS += -I$(PS2SDK)/ports/include
-
-EE_LIBS += -L$(GSKIT)/lib -lgskit -ldmakit -lpad -lm
+EE_LIBS += -lgsKit -ldmakit -lpad -lm
+EE_CFLAGS += -O2
 
 all: $(EE_BIN)
-
-$(EE_BIN): $(EE_OBJS)
+	$(EE_STRIP) $(EE_BIN)
 
 clean:
-	rm -f $(EE_BIN) $(EE_OBJS)
+	rm -f src/*.o $(EE_BIN)
 
 include $(PS2SDK)/samples/Makefile.pref
 include $(PS2SDK)/samples/Makefile.eeglobal
