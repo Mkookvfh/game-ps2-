@@ -27,12 +27,14 @@ jobs:
           echo "$PS2DEV/ee/bin" >> $GITHUB_PATH
           echo "$PS2SDK/bin" >> $GITHUB_PATH
 
-      - name: Verify SDK
+            - name: Verify SDK
         run: |
+          set -e
           test -f "$PS2SDK/samples/Makefile.pref"
+          test -f "$PS2SDK/samples/Makefile.eeglobal"
           test -d "$GSKIT/include"
           test -d "$GSKIT/lib"
-          command -v ee-gcc
+          command -v mips64r5900el-ps2-elf-gcc
 
       - name: Build ELF
         run: |
