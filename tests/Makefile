@@ -1,19 +1,18 @@
-EE_BIN  = GSKitTest.elf
-EE_OBJS = gs_test.o
 
-EE_INCS += -I$(GSKIT)/include
+EE_BIN  = GraphTest.elf
+EE_OBJS = graph_test.o
+
 EE_INCS += -I$(PS2SDK)/ee/include
 EE_INCS += -I$(PS2SDK)/common/include
-EE_INCS += -I$(PS2SDK)/ports/include
 
-EE_LIBS += -L$(GSKIT)/lib -lgskit -ldmakit -lm
+EE_LIBS += -lgraph
 
 all: $(EE_BIN)
 
 $(EE_BIN): $(EE_OBJS)
 
 clean:
-	rm -f $(EE_BIN) $(EE_OBJS)
+	rm -f $(EE_BIN) $(EE_OBJS) GSKitTest.elf gs_test.o
 
 include $(PS2SDK)/samples/Makefile.pref
 include $(PS2SDK)/samples/Makefile.eeglobal
