@@ -18,7 +18,8 @@
 
 static GSGLOBAL *gsGlobal;
 static char padBuf[256] __attribute__((aligned(64)));
-static padButtonStatus padButtons;
+
+static struct padButtonStatus padButtons;
 
 typedef struct { float x, y, z; } Vec3;
 typedef struct { unsigned char r, g, b; } Color;
