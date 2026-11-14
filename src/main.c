@@ -8,7 +8,7 @@ NPCGuard guard;
 
 int main(){
     Player_Init();
-    guard.x=3.0f; guard.z=3.0f;
+    guard.x=3.0f; guard.z=3.0f; guard.rot=0;
     guard.alive=1;
     guard.alert_level=0;
 
