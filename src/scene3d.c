@@ -249,6 +249,188 @@ static void draw_ground(GSGLOBAL *gs)
     }
 }
 
+
+/* =========================================
+   MUEANG ISARA - CITY MAP V1
+   ========================================= */
+
+static void draw_city_building(
+    GSGLOBAL *gs,
+    float x, float width,
+    float front, float depth,
+    float height,
+    u64 front_color,
+    u64 side_color,
+    u64 roof_color,
+    u64 window_color
+) {
+    float bottom = -1.5f;
+    float top = bottom + height;
+    float right = x + width;
+    float back = front + depth;
+
+    /* Front wall */
+    draw_rect(
+        gs, x, bottom, right, top,
+        front, front_color
+    );
+
+    /* Side wall */
+    Vec3 a = {right,bottom,front};
+    Vec3 b = {right,bottom,back};
+    Vec3 c = {right,top,back};
+    Vec3 d = {right,top,front};
+
+    draw_triangle(gs,a,b,c,side_color);
+    draw_triangle(gs,a,c,d,side_color);
+
+    /* Roof */
+    a.x=x; a.y=top; a.z=front;
+    b.x=right; b.y=top; b.z=front;
+    c.x=right; c.y=top; c.z=back;
+    d.x=x; d.y=top; d.z=back;
+
+    draw_triangle(gs,a,b,c,roof_color);
+    draw_triangle(gs,a,c,d,roof_color);
+
+    /* Windows */
+    int row,col;
+
+    for(row=0;row<2;row++) {
+        for(col=0;col<2;col++) {
+            float wx=x+width*(col+1)/3.0f;
+            float wy=bottom+height*(row+1)/3.0f;
+
+            draw_rect(
+                gs,
+                wx-0.12f,wy-0.14f,
+                wx+0.12f,wy+0.14f,
+                front-0.015f,
+                window_color
+            );
+        }
+    }
+}
+
+static void draw_city_map(GSGLOBAL *gs)
+{
+    const WorldEra *era=world_current_era();
+
+    const u64 facade=GS_SETREG_RGBAQ(
+        era->accent_r,
+        era->accent_g,
+        era->accent_b,
+        0x80,0
+    );
+
+    const u64 stone=GS_SETREG_RGBAQ(
+        95,85,72,0x80,0
+    );
+
+    const u64 roof=GS_SETREG_RGBAQ(
+        120,75,48,0x80,0
+    );
+
+    const u64 window=GS_SETREG_RGBAQ(
+        25,30,40,0x80,0
+    );
+
+    switch(world_city_index()) {
+
+        /* PARIS */
+        case 0:
+            draw_city_building(
+                gs,-7.0f,2.7f,11.0f,1.6f,3.0f,
+                facade,stone,roof,window
+            );
+
+            draw_city_building(
+                gs,4.1f,2.8f,10.2f,1.8f,3.4f,
+                facade,stone,roof,window
+            );
+
+            draw_city_building(
+                gs,-1.0f,2.0f,15.0f,1.4f,4.2f,
+                facade,stone,roof,window
+            );
+            break;
+
+        /* VENICE */
+        case 1:
+            draw_city_building(
+                gs,-7.2f,3.2f,9.4f,2.0f,3.6f,
+                facade,stone,roof,window
+            );
+
+            draw_city_building(
+                gs,4.0f,3.0f,9.8f,2.0f,3.2f,
+                facade,stone,roof,window
+            );
+
+            /* Canal */
+            {
+                Vec3 a={-2.0f,-1.43f,7.0f};
+                Vec3 b={ 2.0f,-1.43f,7.0f};
+                Vec3 c={ 2.0f,-1.43f,18.0f};
+                Vec3 d={-2.0f,-1.43f,18.0f};
+
+                u64 water=GS_SETREG_RGBAQ(
+                    35,91,116,0x80,0
+                );
+
+                draw_triangle(gs,a,b,c,water);
+                draw_triangle(gs,a,c,d,water);
+            }
+            break;
+
+        /* ROME */
+        case 2:
+            draw_city_building(
+                gs,-7.0f,3.0f,11.0f,2.0f,3.2f,
+                facade,stone,roof,window
+            );
+
+            draw_city_building(
+                gs,4.0f,3.0f,11.0f,2.0f,3.2f,
+                facade,stone,roof,window
+            );
+
+            /* Roman columns */
+            {
+                int i;
+
+                for(i=0;i<5;i++) {
+                    float cx=-2.0f+i*1.0f;
+
+                    draw_city_building(
+                        gs,cx,0.28f,
+                        12.0f,0.45f,2.7f,
+                        stone,stone,stone,window
+                    );
+                }
+            }
+            break;
+
+        /* ENGLAND */
+        default:
+            draw_city_building(
+                gs,-7.0f,3.4f,10.5f,2.0f,2.8f,
+                facade,stone,roof,window
+            );
+
+            draw_city_building(
+                gs,3.8f,3.4f,10.5f,2.0f,2.8f,
+                facade,stone,roof,window
+            );
+
+            draw_city_building(
+                gs,-2.0f,4.0f,15.0f,2.0f,3.2f,
+                facade,stone,roof,window
+            );
+            break;
+    }
+}
+
 /* Parkour wall */
 static void draw_parkour_wall_at(
     GSGLOBAL *gs,
@@ -1004,6 +1186,7 @@ while(1) {
     gsKit_clear(gs,sky);
 
     draw_ground(gs);
+    draw_city_map(gs);
     draw_parkour_wall(gs);
     draw_player(gs);
     draw_cube(gs,angle);
