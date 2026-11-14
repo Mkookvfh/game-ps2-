@@ -47,6 +47,15 @@ static int is_climbing = 0;
 static float climb_timer = 0.0f;
 static float climb_start_z = 0.0f;
 static float climb_start_x = 0.0f;
+static int is_hanging = 0;
+static int is_mantling = 0;
+
+static int triangle_prev = 0;
+static int cross_prev = 0;
+
+static float mantle_timer = 0.0f;
+static float mantle_start_z = 0.0f;
+static float mantle_start_y = 0.0f;
 
 /* PS2 controller */
 static unsigned char padBuf[256]
@@ -385,20 +394,29 @@ static void draw_player(GSGLOBAL *gs)
     float leg_swing;
     float arm_swing;
 
-    if(is_climbing) {
-        leg_swing=sinf(climb_timer*PI)*0.45f;
-        arm_swing=-0.65f;
-    } else {
-        leg_swing=is_jumping
-            ? 0.18f
-            : sinf(walk_time)*
-              (is_running?0.62f:0.38f);
+    if(is_hanging) {
+    leg_swing = 0.30f;
+    arm_swing = 0.0f;
+}
+else if(is_mantling) {
+    leg_swing = 0.45f;
+    arm_swing = -0.55f;
+}
+else if(is_climbing) {
+    leg_swing = sinf(climb_timer*PI)*0.45f;
+    arm_swing = -0.65f;
+}
+else {
+    leg_swing = is_jumping
+        ? 0.18f
+        : sinf(walk_time)*
+          (is_running ? 0.62f : 0.38f);
 
-        arm_swing=is_jumping
-            ? -0.48f
-            : -sinf(walk_time)*
-              (is_running?0.48f:0.24f);
-    }
+    arm_swing = is_jumping
+        ? -0.48f
+        : -sinf(walk_time)*
+          (is_running ? 0.48f : 0.24f);
+}
 
     /* Legs */
     draw_player_limb(gs,
@@ -480,7 +498,10 @@ static void update_player(void)
 
     int running=0;
     int jump_pressed=0;
-    int climb_pressed=0;
+    int triangle_down=0;
+int cross_down=0;
+int climb_pressed=0;
+int drop_pressed=0;
 
     if(pad_ready &&
        padGetState(0,0)==PAD_STATE_STABLE)
@@ -527,12 +548,17 @@ static void update_player(void)
                 running=1;
 
             /* Cross = Jump */
-            if(!(pad.btns&PAD_CROSS))
-                jump_pressed=1;
+            if(!(pad.btns & PAD_CROSS))
+                cross_down=1;
 
             /* Triangle = Climb */
-            if(!(pad.btns&PAD_TRIANGLE))
-                climb_pressed=1;
+            if(!(pad.btns & PAD_TRIANGLE))
+                triangle_down=1;
+climb_pressed = triangle_down && !triangle_prev;
+drop_pressed = cross_down && !cross_prev;
+
+triangle_prev = triangle_down;
+cross_prev = cross_down;
         }
     }
 
@@ -566,21 +592,80 @@ static void update_player(void)
         return;
     }
 
-    /* Start climb near the wall */
-    if(climb_pressed &&
-       !is_jumping &&
-       fabsf(player_x)<2.2f &&
-       player_z>4.65f &&
-       player_z<5.35f &&
-       cosf(player_yaw)>0.65f)
-    {
-        is_climbing=1;
-        climb_timer=0.0f;
-        climb_start_x=player_x;
-        climb_start_z=player_z;
-        jump_velocity=0.0f;
-        return;
+    /* Drop from ledge */
+if(is_hanging && drop_pressed) {
+    is_hanging = 0;
+    player_y = 0.0f;
+    is_jumping = 1;
+    jump_velocity = -0.04f;
+    return;
+}
+
+/* Start mantle */
+if(is_hanging && climb_pressed) {
+    is_hanging = 0;
+    is_mantling = 1;
+    mantle_timer = 0.0f;
+
+    mantle_start_z = player_z;
+    mantle_start_y = player_y;
+
+    return;
+}
+
+/* Hanging animation */
+if(is_hanging) {
+    player_y = -0.30f + sinf(walk_time * 2.0f) * 0.025f;
+    player_z = WALL_FRONT - 0.12f;
+    player_yaw = 0.0f;
+
+    body_bob = 0.0f;
+    body_sway = 0.0f;
+
+    return;
+}
+
+/* Mantle animation */
+if(is_mantling) {
+    mantle_timer += 0.035f;
+
+    if(mantle_timer > 1.0f)
+        mantle_timer = 1.0f;
+
+    float t = mantle_timer;
+    float smooth = t*t*(3.0f-2.0f*t);
+
+    player_z = mantle_start_z +
+        (CLIMB_END_Z - mantle_start_z) * smooth;
+
+    player_y = mantle_start_y +
+        0.95f * sinf(t * PI);
+
+    if(mantle_timer >= 1.0f) {
+        is_mantling = 0;
+        player_y = 0.0f;
+        player_z = CLIMB_END_Z;
+        mantle_timer = 0.0f;
     }
+
+    return;
+}
+
+    /* Start ledge grab near the wall */
+if(climb_pressed &&
+   !is_jumping &&
+   fabsf(player_x) < 2.2f &&
+   player_z > 4.65f &&
+   player_z < 5.35f &&
+   cosf(player_yaw) > 0.65f)
+{
+    is_hanging = 1;
+    player_z = WALL_FRONT - 0.12f;
+    player_y = -0.30f;
+
+    jump_velocity = 0.0f;
+    return;
+}
 
     float speed=running?0.085f:0.045f;
 
