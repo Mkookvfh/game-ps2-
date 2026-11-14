@@ -835,23 +835,6 @@ if(is_jumping &&
     }
 }
 
-    /* Second wall collision */
-if(fabsf(next_x) < 2.2f &&
-   player_z <= WALL2_BLOCK_Z &&
-   next_z > WALL2_BLOCK_Z &&
-   player_y < WALL2_HEIGHT * 0.65f)
-{
-    next_z = WALL2_BLOCK_Z;
-}
-
-if(fabsf(next_x) < 2.2f &&
-   player_z >= WALL2_BACK + 0.40f &&
-   next_z < WALL2_BACK + 0.40f &&
-   player_y < WALL2_HEIGHT * 0.65f)
-{
-    next_z = WALL2_BACK + 0.40f;
-}
-
     /* World bounds */
     if(player_x<-8.0f) player_x=-8.0f;
     if(player_x>8.0f) player_x=8.0f;
