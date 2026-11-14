@@ -242,7 +242,9 @@ gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
 /* ปิด Z-Test เพื่อให้ภาพ 2D แสดงผล */
 gsKit_set_test(gsGlobal, GS_ZTEST_OFF);
 
-    menuState = 0;
+gsKit_mode_switch(gsGlobal, GS_ONESHOT);
+
+menuState = 0;
     for (;;) {
         ++frameNo;
         if (menuState == 0) {
@@ -262,7 +264,6 @@ gsKit_set_test(gsGlobal, GS_ZTEST_OFF);
         }
         gsKit_queue_exec(gsGlobal);
         gsKit_sync_flip(gsGlobal);
-        gsKit_queue_reset(gsGlobal->Per_Queue);
     }
     return 0;
 }
