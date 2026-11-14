@@ -220,6 +220,10 @@ int main(int argc, char *argv[]) {
 
     gsGlobal = gsKit_init_global();
 
+if (gsGlobal == NULL) {
+    return 1;
+}
+
 /* กำหนดโหมด NTSC ให้ครบ */
 gsGlobal->Mode = GS_MODE_NTSC;
 gsGlobal->Interlace = GS_INTERLACED;
