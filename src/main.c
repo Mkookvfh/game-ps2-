@@ -249,9 +249,12 @@ int main(int argc, char *argv[]) {
     gsKit_init_screen(gsGlobal);
 
     /* Persistent setup: turn Z-test off so the flat 2D/3D mix draws in order. */
-    gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
-    gsKit_set_test(gsGlobal, GS_ZTEST_OFF);
-    gsKit_mode_switch(gsGlobal, GS_ONESHOT);
+    /* Initialize GSKit screen */
+gsKit_init_screen(gsGlobal);
+
+/* Disable depth test for diagnostic rendering */
+gsGlobal->ZBuffering = GS_SETTING_OFF;
+gsKit_mode_switch(gsGlobal, GS_ONESHOT);
 
     /* Show one frame BEFORE touching the controller, so a controller or
      * module problem can never hide the screen again. */
