@@ -1,25 +1,32 @@
-name: Build‑Test
+name: Build PS2 Homebrew Game
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
-    runs‑on: ubuntu‑latest
+    runs-on: ubuntu‑latest
     steps:
-      - name: Checkout
+      - name: Checkout source
         uses: actions/checkout@v4
 
-      - name: Install Tools
+      - name: Install dependencies for ps2dev
         run: |
-          sudo apt update
-          sudo apt install -y gcc make
+          sudo apt‑get update
+          sudo apt‑get install ‑y git wget cmake make gcc g++ patch bzip2
 
-      - name: List src files
-        run: ls -la src/
+      - name: Setup PS2DEV environment variables
+        run: |
+          echo "PS2DEV=${{ github.workspace }}/ps2dev" >> $GITHUB_ENV
+          echo "PS2SDK=${{ github.workspace }}/ps2dev/ps2sdk" >> $GITHUB_ENV
+          echo "PATH=${{ github.workspace }}/ps2dev/bin:${{ github.workspace }}/ps2dev/ps2sdk/bin:$PATH" >> $GITHUB_ENV
 
-      - name: Compile
+      - name: Clone and build ps2dev (ps2‑toolchain)
+        run: |
+          git clone https://github.com/ps2dev/ps2‑toolchain.git
+          cd ps2‑toolchain
+          ./build.sh
+
+      - name: Compile your PS2 project using Makefile
         run: make
-
-      - name: Run test
-        run: ./game_test
