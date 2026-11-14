@@ -23,6 +23,7 @@ static float player_x = 0.0f;
 static float player_z = 3.0f;
 static float player_y = 0.0f;
 static float player_yaw = 0.0f;
+static float camera_yaw = 0.0f;
 
 static float jump_velocity = 0.0f;
 static int is_jumping = 0;
