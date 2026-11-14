@@ -233,7 +233,10 @@ gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
                 D_CTRL_STD_OFF,D_CTRL_RCYC_8,1 << DMA_CHANNEL_GIF);
     dmaKit_chan_init(DMA_CHANNEL_GIF);
     gsKit_init_screen(gsGlobal);
-    gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
+gsKit_mode_switch(gsGlobal, GS_PERSISTENT);
+
+/* ปิด Z-Test เพื่อให้ภาพ 2D แสดงผล */
+gsKit_set_test(gsGlobal, GS_ZTEST_OFF);
 
     menuState = 0;
     for (;;) {
