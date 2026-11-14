@@ -15,11 +15,11 @@ jobs:
           sudo apt update
           sudo apt install -y gcc make
 
-      - name: List files (เช็คว่ามีไฟล์ครบ)
+      - name: List src files
         run: ls -la src/
 
       - name: Compile
         run: make
 
-      - name: Run
+      - name: Run test
         run: ./game_test
