@@ -47,3 +47,10 @@ jobs:
           name: GSKitTest
           path: tests/GSKitTest.elf
           if-no-files-found: error
+
+
+      - name: Install build tools
+        shell: sh
+        run: |
+          apk add --no-cache build-base
+          make --version
