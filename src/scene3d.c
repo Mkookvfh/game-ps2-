@@ -598,7 +598,7 @@ int drop_pressed=0;
 
         player_x=climb_start_x;
         player_z=climb_start_z+
-            (CLIMB_END_Z-climb_start_z)*smooth;
+    (active_wall_end_z-climb_start_z)*smooth;
 
         player_y=sinf(t*PI)*0.85f;
 
@@ -609,7 +609,7 @@ int drop_pressed=0;
         if(climb_timer>=1.0f) {
             is_climbing=0;
             player_y=0.0f;
-            player_z=CLIMB_END_Z;
+            player_z=active_wall_end_z;
             climb_timer=0.0f;
         }
 
