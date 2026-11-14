@@ -7,7 +7,9 @@ EE_INCS += -I$(PS2SDK)/ee/include
 EE_INCS += -I$(PS2SDK)/common/include
 EE_INCS += -I$(PS2SDK)/ports/include
 
-EE_LIBS += -L$(GSKIT)/lib -lgsKit -ldmaKit -lpad -lm
+
+EE_LIBS += -L$(GSKIT)/lib -lgskit -ldmakit -lpad -lm
+
 
 all: $(EE_BIN)
 
