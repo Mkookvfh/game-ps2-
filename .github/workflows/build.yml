@@ -38,16 +38,23 @@ jobs:
           fi
           git --version
 
+      
       - name: Install gsKit
         shell: sh
         run: |
-          if [ ! -d "$GSKIT/.git" ]; then
+          if [ -f "$GSKIT/Makefile" ]; then
+            echo "Using existing gsKit source"
+          else
+            echo "Existing gsKit directory is incomplete"
+            rm -rf "$GSKIT"
             mkdir -p "$(dirname "$GSKIT")"
             git clone --depth 1 https://github.com/ps2dev/gsKit.git "$GSKIT"
           fi
+
           cd "$GSKIT"
           make
           make install
+
 
       - name: Build PS2 ELF
         shell: sh
