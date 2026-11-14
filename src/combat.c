@@ -27,6 +27,7 @@ void Combat_PostKillLookAround(){
 }
 
 int Combat_CheckCanSilentKill(float px,float pz,float nx,float nz,float nrot){
+    (void)nrot;
     float dist = sqrtf( (px-nx)*(px-nx)+(pz-nz)*(pz-nz) );
     if(dist > 2.0f) return 0;
     return 1;
