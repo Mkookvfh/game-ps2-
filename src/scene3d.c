@@ -246,7 +246,52 @@ static void draw_player_rect(
     draw_triangle(gs, a, c, d, color);
 }
 
+/* Hybrid CPU character transform */
+static void draw_player_rect(
+    GSGLOBAL *gs,
+    float left,
+    float bottom,
+    float right,
+    float top,
+    float local_z,
+    u64 color
+) {
+    float cs = cosf(player_yaw);
+    float sn = sinf(player_yaw);
+
+    float y0 = bottom + player_y;
+    float y1 = top + player_y;
+
+    Vec3 a = {
+        player_x + left * cs + local_z * sn,
+        y0,
+        player_z - left * sn + local_z * cs
+    };
+
+    Vec3 b = {
+        player_x + right * cs + local_z * sn,
+        y0,
+        player_z - right * sn + local_z * cs
+    };
+
+    Vec3 c = {
+        player_x + right * cs + local_z * sn,
+        y1,
+        player_z - right * sn + local_z * cs
+    };
+
+    Vec3 d = {
+        player_x + left * cs + local_z * sn,
+        y1,
+        player_z - left * sn + local_z * cs
+    };
+
+    draw_triangle(gs, a, b, c, color);
+    draw_triangle(gs, a, c, d, color);
+}
+
 /* Player model */
+
 /* Hybrid Player Model */
 static void draw_player(GSGLOBAL *gs)
 {
