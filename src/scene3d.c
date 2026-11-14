@@ -463,7 +463,10 @@ int main(void)
     if(gs==NULL)
         return 1;
 
-    /* TEMP: Disable controller for graphics test */
+    /* Initialize controller RPC */
+SifInitRpc(0);
+padInit(0);
+padPortOpen(0, 0, padBuf);
 
     /* Initialize graphics */
     dmaKit_init(
