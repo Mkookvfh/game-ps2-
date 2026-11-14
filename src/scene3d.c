@@ -22,6 +22,13 @@
 #define WALL_HEIGHT  0.85f
 #define PLAYER_BLOCK_Z 5.15f
 #define CLIMB_END_Z  6.35f
+#define WALL2_LEFT   -2.5f
+#define WALL2_RIGHT   2.5f
+#define WALL2_FRONT  10.55f
+#define WALL2_BACK   10.85f
+#define WALL2_HEIGHT  0.85f
+#define WALL2_BLOCK_Z 10.15f
+#define WALL2_END_Z  11.35f
 
 typedef struct {
     float x, y, z;
@@ -56,6 +63,9 @@ static int cross_prev = 0;
 static float mantle_timer = 0.0f;
 static float mantle_start_z = 0.0f;
 static float mantle_start_y = 0.0f;
+static int active_wall = 0;
+static float active_wall_front = WALL_FRONT;
+static float active_wall_end_z = CLIMB_END_Z;
 
 /* PS2 controller */
 static unsigned char padBuf[256]
@@ -222,64 +232,77 @@ static void draw_ground(GSGLOBAL *gs)
 }
 
 /* Parkour wall */
-static void draw_parkour_wall(GSGLOBAL *gs)
-{
-    const u64 wall =
-        GS_SETREG_RGBAQ(105,85,65,0x80,0);
-
+static void draw_parkour_wall_at(
+    GSGLOBAL *gs,
+    float left, float right,
+    float front, float back,
+    float height, u64 wall_color
+) {
     const u64 wall_side =
         GS_SETREG_RGBAQ(70,58,48,0x80,0);
-
     const u64 wall_top =
         GS_SETREG_RGBAQ(145,125,95,0x80,0);
 
     float bottom = -1.5f;
-    float top = bottom + WALL_HEIGHT;
+    float top = bottom + height;
 
-    /* Front */
-    draw_rect(
-        gs,
-        WALL_LEFT,bottom,
-        WALL_RIGHT,top,
-        WALL_FRONT,
-        wall
-    );
+    draw_rect(gs,left,bottom,right,top,front,wall_color);
+    draw_rect(gs,left,bottom,right,top,back,wall_side);
 
-    /* Back */
-    draw_rect(
-        gs,
-        WALL_LEFT,bottom,
-        WALL_RIGHT,top,
-        WALL_BACK,
-        wall_side
-    );
-
-    /* Left side */
-    Vec3 a={WALL_LEFT,bottom,WALL_FRONT};
-    Vec3 b={WALL_LEFT,bottom,WALL_BACK};
-    Vec3 c={WALL_LEFT,top,WALL_BACK};
-    Vec3 d={WALL_LEFT,top,WALL_FRONT};
+    Vec3 a={left,bottom,front};
+    Vec3 b={left,bottom,back};
+    Vec3 c={left,top,back};
+    Vec3 d={left,top,front};
 
     draw_triangle(gs,a,b,c,wall_side);
     draw_triangle(gs,a,c,d,wall_side);
 
-    /* Right side */
-    a.x=WALL_RIGHT;
-    b.x=WALL_RIGHT;
-    c.x=WALL_RIGHT;
-    d.x=WALL_RIGHT;
+    a.x=right;
+    b.x=right;
+    c.x=right;
+    d.x=right;
 
     draw_triangle(gs,a,b,c,wall_side);
     draw_triangle(gs,a,c,d,wall_side);
 
-    /* Top surface */
-    Vec3 t1={WALL_LEFT,top,WALL_FRONT};
-    Vec3 t2={WALL_RIGHT,top,WALL_FRONT};
-    Vec3 t3={WALL_RIGHT,top,WALL_BACK};
-    Vec3 t4={WALL_LEFT,top,WALL_BACK};
+    Vec3 t1={left,top,front};
+    Vec3 t2={right,top,front};
+    Vec3 t3={right,top,back};
+    Vec3 t4={left,top,back};
 
     draw_triangle(gs,t1,t2,t3,wall_top);
     draw_triangle(gs,t1,t3,t4,wall_top);
+}
+
+static void draw_parkour_wall(GSGLOBAL *gs)
+{
+    draw_parkour_wall_at(
+        gs,WALL_LEFT,WALL_RIGHT,
+        WALL_FRONT,WALL_BACK,
+        WALL_HEIGHT,
+        GS_SETREG_RGBAQ(105,85,65,0x80,0)
+    );
+
+    draw_parkour_wall_at(
+        gs,WALL2_LEFT,WALL2_RIGHT,
+        WALL2_FRONT,WALL2_BACK,
+        WALL2_HEIGHT,
+        GS_SETREG_RGBAQ(105,95,72,0x80,0)
+    );
+}
+
+static void select_parkour_wall(int index)
+{
+    active_wall=index;
+
+    if(index==1) {
+        active_wall_front=WALL2_FRONT;
+        active_wall_end_z=WALL2_END_Z;
+    } else {
+        active_wall=0;
+        active_wall_front=WALL_FRONT;
+        active_wall_end_z=CLIMB_END_Z;
+    }
 }
 
 /* Player rectangle */
@@ -617,7 +640,7 @@ if(is_hanging && climb_pressed) {
 /* Hanging: move along the wall */
 if(is_hanging) {
     player_y = -0.30f + sinf(walk_time * 2.0f) * 0.025f;
-    player_z = WALL_FRONT - 0.12f;
+    player_z = active_wall_front - 0.12f;
     player_yaw = 0.0f;
 
     if(move_x < -0.1f)
@@ -647,7 +670,7 @@ if(is_mantling) {
     float smooth = t*t*(3.0f-2.0f*t);
 
     player_z = mantle_start_z +
-        (CLIMB_END_Z - mantle_start_z) * smooth;
+    (active_wall_end_z - mantle_start_z) * smooth;
 
     player_y = mantle_start_y +
         0.95f * sinf(t * PI);
@@ -655,26 +678,41 @@ if(is_mantling) {
     if(mantle_timer >= 1.0f) {
         is_mantling = 0;
         player_y = 0.0f;
-        player_z = CLIMB_END_Z;
+        player_z = active_wall_end_z;
         mantle_timer = 0.0f;
     }
 
     return;
 }
 
-    /* Start ledge grab near the wall */
+    /* Start ledge grab near either wall */
+int requested_wall = -1;
+
+if(fabsf(player_x) < 2.2f &&
+   player_z > 4.65f &&
+   player_z < 5.35f)
+{
+    requested_wall = 0;
+}
+else if(fabsf(player_x) < 2.2f &&
+        player_z > 9.65f &&
+        player_z < 10.35f)
+{
+    requested_wall = 1;
+}
+
 if(climb_pressed &&
    !is_jumping &&
-   fabsf(player_x) < 2.2f &&
-   player_z > 4.65f &&
-   player_z < 5.35f &&
+   requested_wall >= 0 &&
    cosf(player_yaw) > 0.65f)
 {
-    is_hanging = 1;
-    player_z = WALL_FRONT - 0.12f;
-    player_y = -0.30f;
+    select_parkour_wall(requested_wall);
 
+    is_hanging = 1;
+    player_z = active_wall_front - 0.12f;
+    player_y = -0.30f;
     jump_velocity = 0.0f;
+
     return;
 }
 
@@ -762,22 +800,57 @@ if(climb_pressed &&
         }
     }
 
-        /* Automatically catch the wall while airborne */
-    if(is_jumping &&
-       fabsf(player_x) < 2.2f &&
-       player_z >= PLAYER_BLOCK_Z - 0.20f &&
-       player_z <= PLAYER_BLOCK_Z + 0.12f &&
-       player_y > 0.12f &&
-       cosf(player_yaw) > 0.65f)
+        /* Automatically catch either wall while airborne */
+if(is_jumping &&
+   fabsf(player_x) < 2.2f &&
+   player_y > 0.12f &&
+   cosf(player_yaw) > 0.65f)
+{
+    int caught_wall = -1;
+
+    if(player_z >= PLAYER_BLOCK_Z - 0.20f &&
+       player_z <= PLAYER_BLOCK_Z + 0.12f)
     {
+        caught_wall = 0;
+    }
+    else if(player_z >= WALL2_BLOCK_Z - 0.20f &&
+            player_z <= WALL2_BLOCK_Z + 0.12f)
+    {
+        caught_wall = 1;
+    }
+
+    if(caught_wall >= 0)
+    {
+        select_parkour_wall(caught_wall);
+
         is_jumping = 0;
         jump_velocity = 0.0f;
         is_hanging = 1;
-        player_z = WALL_FRONT - 0.12f;
+
+        player_z = active_wall_front - 0.12f;
         player_y = -0.30f;
+
         body_bob = 0.0f;
         body_sway = 0.0f;
     }
+}
+
+    /* Second wall collision */
+if(fabsf(next_x) < 2.2f &&
+   player_z <= WALL2_BLOCK_Z &&
+   next_z > WALL2_BLOCK_Z &&
+   player_y < WALL2_HEIGHT * 0.65f)
+{
+    next_z = WALL2_BLOCK_Z;
+}
+
+if(fabsf(next_x) < 2.2f &&
+   player_z >= WALL2_BACK + 0.40f &&
+   next_z < WALL2_BACK + 0.40f &&
+   player_y < WALL2_HEIGHT * 0.65f)
+{
+    next_z = WALL2_BACK + 0.40f;
+}
 
     /* World bounds */
     if(player_x<-8.0f) player_x=-8.0f;
