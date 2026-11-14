@@ -33,6 +33,7 @@ static unsigned char padBuf[256]
     __attribute__((aligned(64)));
 
 static struct padButtonStatus pad;
+static int pad_ready = 0;
 
 /* Cube */
 static const Vec3 cube[8] = {
@@ -328,7 +329,7 @@ static void update_player(void)
     int running=0;
     int jump_pressed=0;
 
-    if(padGetState(0,0)==PAD_STATE_STABLE) {
+    if(pad_ready && padGetState(0,0)==PAD_STATE_STABLE) {
 
         if(padRead(0,0,&pad)) {
 
@@ -465,9 +466,22 @@ int main(void)
         return 1;
 
     /* Initialize controller RPC */
+/* Initialize controller drivers */
 SifInitRpc(0);
-padInit(0);
-padPortOpen(0, 0, padBuf);
+
+int sio = SifLoadModule("rom0:XSIO2MAN", 0, NULL);
+
+if(sio >= 0) {
+    int pman = SifLoadModule("rom0:XPADMAN", 0, NULL);
+
+    if(pman >= 0) {
+        if(padInit(0) == 1) {
+            if(padPortOpen(0, 0, padBuf) != 0) {
+                pad_ready = 1;
+            }
+        }
+    }
+}
 
     /* Initialize graphics */
     dmaKit_init(
