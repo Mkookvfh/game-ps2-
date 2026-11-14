@@ -637,6 +637,15 @@ static void draw_parkour_wall(GSGLOBAL *gs)
         WALL2_HEIGHT,
         GS_SETREG_RGBAQ(105,95,72,0x80,0)
     );
+    /* V4 - L-shaped side wall */
+    draw_parkour_wall_at(
+        gs,
+        2.5f, 2.8f,
+        WALL_FRONT,
+        WALL_FRONT + 1.8f,
+        WALL_HEIGHT,
+        GS_SETREG_RGBAQ(125,100,75,0x80,0)
+    );
 }
 
 static void select_parkour_wall(int index)
