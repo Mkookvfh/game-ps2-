@@ -58,6 +58,7 @@ static const int edges[12][2] = {
 
 /* Camera projection */
 
+
 static int project_world(
     Vec3 p,
     float *sx,
@@ -67,15 +68,15 @@ static int project_world(
     float dy = p.y - CAMERA_HEIGHT;
     float dz = p.z - player_z;
 
-    float cs = cosf(player_yaw);
-    float sn = sinf(player_yaw);
+    /* Smooth camera rotation */
+    float cs = cosf(camera_yaw);
+    float sn = sinf(camera_yaw);
 
-    /* Camera follows behind player's facing direction */
     float camera_x = dx * cs - dz * sn;
     float camera_z = 8.0f + dx * sn + dz * cs;
 
-    float cs = cosf(camera_yaw);
-    float sn = sinf(camera_yaw);
+    float cp = cosf(CAMERA_PITCH);
+    float sp = sinf(CAMERA_PITCH);
 
     float cy = dy * cp - camera_z * sp;
     float cz = dy * sp + camera_z * cp;
@@ -88,6 +89,7 @@ static int project_world(
 
     return 1;
 }
+
 
 
 /* Draw triangle */
