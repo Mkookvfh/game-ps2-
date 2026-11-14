@@ -1,15 +1,8 @@
-EE_BIN = MueangIsara.elf
-EE_OBJS = src/main.o
+TARGET = game_test
+SRC = src/main.c src/player.c src/combat.c src/ai_npc.c
 
-EE_INCS += -I$(GSKIT)/include
-EE_LIBS += -lgsKit -ldmakit -lpad -lm
-EE_CFLAGS += -O2
-
-all: $(EE_BIN)
-	$(EE_STRIP) $(EE_BIN)
+all:
+	gcc $(SRC) ‑o $(TARGET) ‑lm
 
 clean:
-	rm -f src/*.o $(EE_BIN)
-
-include $(PS2SDK)/samples/Makefile.pref
-include $(PS2SDK)/samples/Makefile.eeglobal
+	rm ‑f $(TARGET)
