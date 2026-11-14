@@ -5,6 +5,7 @@
 #include <libpad.h>
 #include <math.h>
 #include <sifrpc.h>
+#include <loadfile.h>
 
 #define CENTER_X 320.0f
 #define CENTER_Y 224.0f
