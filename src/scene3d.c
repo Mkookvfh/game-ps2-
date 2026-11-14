@@ -8,8 +8,8 @@
 #define CENTER_X 320.0f
 #define CENTER_Y 224.0f
 #define FOCAL_LENGTH 250.0f
-#define CAMERA_HEIGHT 3.0f
-#define CAMERA_PITCH 0.35f
+#define CAMERA_HEIGHT 1.8f
+#define CAMERA_PITCH 0.12f
 #define PI 3.14159265f
 
 typedef struct {
