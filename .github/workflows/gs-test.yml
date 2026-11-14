@@ -1,4 +1,4 @@
-name: GSKit Diagnostic Build
+name: GSKit and Graph Diagnostic Build
 
 on:
   workflow_dispatch:
@@ -23,27 +23,45 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check PS2SDK environment
+      - name: Check PS2SDK and GSKit
         run: |
           echo "PS2SDK=$PS2SDK"
           echo "GSKIT=$GSKIT"
           test -d "$PS2SDK"
           test -d "$GSKIT"
 
-      - name: Build GSKit diagnostic
+      - name: Install build tools
+        run: |
+          apk add --no-cache build-base
+          make --version
+
+      - name: Build GraphTest
         run: |
           make -C tests clean
           make -C tests
+          test -s tests/GraphTest.elf
 
-      - name: Verify ELF
+      - name: Build GSKitTest
         run: |
+          make -C tests \
+            EE_BIN=GSKitTest.elf \
+            EE_OBJS=gs_test.o \
+            "EE_INCS=-I${PS2SDK}/ee/include -I${PS2SDK}/common/include -I${GSKIT}/include" \
+            "EE_LIBS=-L${GSKIT}/lib -lgskit -ldmakit -lgraph"
           test -s tests/GSKitTest.elf
+
+      - name: Verify ELF files
+        run: |
+          file tests/GraphTest.elf
           file tests/GSKitTest.elf
+          file tests/GraphTest.elf | grep -q MIPS
           file tests/GSKitTest.elf | grep -q MIPS
 
-      - name: Upload diagnostic ELF
+      - name: Upload diagnostic files
         uses: actions/upload-artifact@v4
         with:
-          name: GSKitTest
-          path: tests/GSKitTest.elf
+          name: PS2-GS-Diagnostics
+          path: |
+            tests/GraphTest.elf
+            tests/GSKitTest.elf
           if-no-files-found: error
