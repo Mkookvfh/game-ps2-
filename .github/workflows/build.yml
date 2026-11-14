@@ -35,7 +35,7 @@ jobs:
           echo "$PS2DEV/ee/bin" >> "$GITHUB_PATH"
           echo "$PS2SDK/bin" >> "$GITHUB_PATH"
 
-            - name: Verify SDK
+      - name: Verify SDK
         run: |
           set -eu
           test -f "$PS2SDK/samples/Makefile.pref"
@@ -61,13 +61,6 @@ jobs:
             exit 1
           fi
           make --version
-
-      - name: Build ELF
-        run: |
-          set -eu
-          make clean
-          make EE_CC="$EE_CC"
-          test -s MueangIsara.elf
 
       - name: Build ELF
         run: |
