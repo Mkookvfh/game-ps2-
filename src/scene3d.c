@@ -444,11 +444,14 @@ static void draw_city_map(GSGLOBAL *gs)
         120,75,48,0x80,0
     );
 
-    const u64 window=GS_SETREG_RGBAQ(
-        25,30,40,0x80,0
-    /* Draw streets and alleys */
+    
+const u64 window=GS_SETREG_RGBAQ(
+    25,30,40,0x80,0
+);
+
+/* Draw streets and alleys */
 draw_city_roads(gs,world_city_index());
-    );
+
 
     switch(world_city_index()) {
 
