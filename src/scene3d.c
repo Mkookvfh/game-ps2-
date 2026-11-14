@@ -452,6 +452,19 @@ const u64 window=GS_SETREG_RGBAQ(
 /* Draw streets and alleys */
 draw_city_roads(gs,world_city_index());
 
+/* City Map V3 - Rooftop Parkour */
+draw_city_building(
+    gs,-6.2f,2.5f,
+    7.0f,2.0f,0.90f,
+    facade,stone,roof,window
+);
+
+draw_city_building(
+    gs,3.7f,2.5f,
+    7.0f,2.0f,0.90f,
+    facade,stone,roof,window
+);
+
 
     switch(world_city_index()) {
 
@@ -547,6 +560,23 @@ draw_city_roads(gs,world_city_index());
             );
             break;
     }
+}
+
+/* =========================================
+   CITY MAP V3 - ROOFTOP HEIGHT
+   ========================================= */
+
+static float city_roof_height(float x, float z)
+{
+    if(x >= -6.2f && x <= -3.7f &&
+       z >= 7.0f && z <= 9.0f)
+        return 0.90f;
+
+    if(x >= 3.7f && x <= 6.2f &&
+       z >= 7.0f && z <= 9.0f)
+        return 0.90f;
+
+    return 0.0f;
 }
 
 /* Parkour wall */
