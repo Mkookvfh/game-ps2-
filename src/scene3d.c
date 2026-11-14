@@ -21,7 +21,7 @@ typedef struct {
 /* Player state */
 static float player_x = 0.0f;
 static float player_z = 3.0f;
-static float player_y = 0.0f;
+static float player_yaw = 0.0f;
 
 static float jump_velocity = 0.0f;
 static int is_jumping = 0;
@@ -55,33 +55,38 @@ static const int edges[12][2] = {
 };
 
 /* Camera projection */
+
 static int project_world(
     Vec3 p,
     float *sx,
     float *sy
 ) {
     float dx = p.x - player_x;
-
     float dy = p.y - CAMERA_HEIGHT;
+    float dz = p.z - player_z;
 
-    /* Camera follows player from behind */
-    float camera_z = player_z - 8.0f;
-    float dz = p.z - camera_z;
+    float cs = cosf(player_yaw);
+    float sn = sinf(player_yaw);
+
+    /* Camera follows behind player's facing direction */
+    float camera_x = dx * cs - dz * sn;
+    float camera_z = 8.0f + dx * sn + dz * cs;
 
     float cp = cosf(CAMERA_PITCH);
     float sp = sinf(CAMERA_PITCH);
 
-    float cy = dy * cp - dz * sp;
-    float cz = dy * sp + dz * cp;
+    float cy = dy * cp - camera_z * sp;
+    float cz = dy * sp + camera_z * cp;
 
     if (cz < 0.5f)
         return 0;
 
-    *sx = CENTER_X + dx * FOCAL_LENGTH / cz;
+    *sx = CENTER_X + camera_x * FOCAL_LENGTH / cz;
     *sy = CENTER_Y - cy * FOCAL_LENGTH / cz;
 
     return 1;
 }
+
 
 /* Draw triangle */
 static void draw_triangle(
@@ -397,7 +402,10 @@ static void update_player(void)
         }
 
         player_x += move_x * speed;
-        player_z += move_z * speed;
+player_z += move_z * speed;
+
+/* Turn player toward movement direction */
+player_yaw = atan2f(move_x, move_z);
 
         walk_time += running ? 0.25f : 0.15f;
     }
