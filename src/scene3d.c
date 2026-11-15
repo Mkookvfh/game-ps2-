@@ -585,7 +585,7 @@ static const CityBuildingData city_buildings[] = {
     {3,11.0f,4.0f,37.0f,2.5f,4.0f}
 };
 
-/* Graphics Upgrade V2 - Building Shadows */
+/* Graphics Upgrade V2 - Building Shadows Enhanced */
 static void draw_building_shadow(
     GSGLOBAL *gs,
     float x,
@@ -595,11 +595,11 @@ static void draw_building_shadow(
 ) {
     float y = -1.44f;
 
-    float extend_x = 1.2f;
-    float extend_z = 1.8f;
+    float extend_x = 2.8f;
+    float extend_z = 4.5f;
 
     u64 shadow = GS_SETREG_RGBAQ(
-        22, 20, 18, 0x80, 0
+        12, 11, 10, 0x80, 0
     );
 
     Vec3 a = {
