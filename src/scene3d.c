@@ -1636,9 +1636,11 @@ static void draw_player_part(
         float tx = rx*ac - ry*as + pivot_x;
         float ty = rx*as + ry*ac + pivot_y;
 
-        v[i].x = player_x + tx*cs + sz[i]*hz*sn;
-        v[i].y = player_y + ty + body_bob;
-        v[i].z = player_z - tx*sn + sz[i]*hz*cs;
+        float local_z = cz + sz[i]*hz;
+
+v[i].x = player_x + tx*cs + local_z*sn;
+v[i].y = player_y + ty + body_bob;
+v[i].z = player_z - tx*sn + local_z*cs;
     }
 
     /* Front */
