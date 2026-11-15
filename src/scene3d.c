@@ -1747,12 +1747,12 @@ if(is_jumping)
 if(is_hanging || is_climbing)
     cloak_swing = 0.04f;
 
-/* Main cloak - behind the character */
+/* Main cloak - wider and longer */
 
 draw_player_part(
     gs,
-    0.0f,-0.18f,0.27f,
-    0.38f,0.66f,0.045f,
+    0.0f,-0.22f,0.34f,
+    0.52f,0.75f,0.055f,
     cloak_swing,
     0.0f,0.45f,
     cloak,cloak_side,cloak_top
@@ -1762,8 +1762,8 @@ draw_player_part(
 
 draw_player_part(
     gs,
-    0.0f,-0.79f,0.30f,
-    0.38f,0.055f,0.055f,
+    0.0f,-0.91f,0.37f,
+    0.52f,0.06f,0.065f,
     cloak_swing,
     0.0f,0.45f,
     cloak_edge,cloak_side,cloak_edge
