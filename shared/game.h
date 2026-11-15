@@ -10,17 +10,14 @@ typedef struct {
     float z;
     float yaw;
     float move_speed;
-
     float jump_height;
     float vertical_velocity;
-
     int grounded;
     int jump_was_down;
 } MueangPlayer;
 
 typedef struct {
     MueangPlayer player;
-
     float camera_yaw;
     float camera_pitch;
     float camera_distance;
