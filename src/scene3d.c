@@ -42,6 +42,7 @@ static float player_y = 0.0f;
 static float player_yaw = 0.0f;
 static float camera_yaw = 0.0f;
 static float camera_pitch = 0.12f;
+static float camera_distance = 8.0f;
 static int camera_manual = 0;
 
 static float jump_velocity = 0.0f;
@@ -116,7 +117,7 @@ static int project_world(
     float sn = sinf(camera_yaw);
 
     float camera_x = dx * cs - dz * sn;
-    float camera_z = 8.0f + dx * sn + dz * cs;
+    float camera_z = camera_distance + dx * sn + dz * cs;
 
     float cp = cosf(camera_pitch);
     float sp = sinf(camera_pitch);
@@ -1425,6 +1426,104 @@ static void resolve_city_collision(
     }
 }
 
+/* Camera Collision V1 */
+static void update_camera_distance(void)
+{
+    float target_distance = 8.0f;
+    float sn = sinf(camera_yaw);
+    float cs = cosf(camera_yaw);
+
+    int city = world_city_index();
+
+    for(float d = 0.5f; d <= 8.0f; d += 0.25f)
+    {
+        float cx = player_x - sn * d;
+        float cz = player_z - cs * d;
+        int blocked = 0;
+
+        /* District buildings */
+        for(int i = 0; i < 32; i++)
+        {
+            const CityBuildingData *b = &city_buildings[i];
+
+            if(b->city != city)
+                continue;
+
+            float top = -1.5f + b->height;
+
+            if(player_y + CAMERA_HEIGHT > -1.5f &&
+               player_y + CAMERA_HEIGHT < top &&
+               cx > b->x - 0.15f &&
+               cx < b->x + b->width + 0.15f &&
+               cz > b->front - 0.15f &&
+               cz < b->front + b->depth + 0.15f)
+            {
+                blocked = 1;
+                break;
+            }
+        }
+
+        /* Main buildings */
+        if(!blocked)
+        {
+            int count = sizeof(city_collision_boxes) /
+                        sizeof(city_collision_boxes[0]);
+
+            for(int i = 0; i < count; i++)
+            {
+                const CityCollisionBox *b =
+                    &city_collision_boxes[i];
+
+                if(b->city != city)
+                    continue;
+
+                float top = -1.5f + b->height;
+
+                if(player_y + CAMERA_HEIGHT > -1.5f &&
+                   player_y + CAMERA_HEIGHT < top &&
+                   cx > b->x - 0.15f &&
+                   cx < b->x + b->width + 0.15f &&
+                   cz > b->front - 0.15f &&
+                   cz < b->front + b->depth + 0.15f)
+                {
+                    blocked = 1;
+                    break;
+                }
+            }
+        }
+
+        /* Parkour walls */
+        if(!blocked &&
+           player_y + CAMERA_HEIGHT < -1.5f + WALL_HEIGHT &&
+           cx > WALL_LEFT && cx < WALL_RIGHT &&
+           cz > WALL_FRONT && cz < WALL_BACK)
+        {
+            blocked = 1;
+        }
+
+        if(!blocked &&
+           player_y + CAMERA_HEIGHT < -1.5f + WALL2_HEIGHT &&
+           cx > WALL2_LEFT && cx < WALL2_RIGHT &&
+           cz > WALL2_FRONT && cz < WALL2_BACK)
+        {
+            blocked = 1;
+        }
+
+        if(blocked)
+        {
+            target_distance = d - 0.35f;
+
+            if(target_distance < 2.0f)
+                target_distance = 2.0f;
+
+            break;
+        }
+    }
+
+    camera_distance +=
+        (target_distance - camera_distance) * 0.18f;
+}
+
 /* Parkour wall */
 static void draw_parkour_wall_at(
     GSGLOBAL *gs,
@@ -1937,6 +2036,8 @@ static void update_player(void)
 {
     float move_x=0.0f;
     float move_z=0.0f;
+
+    update_camera_distance();
 
     int running=0;
     int jump_pressed=0;
