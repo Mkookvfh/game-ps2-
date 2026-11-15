@@ -354,14 +354,14 @@ static void draw_ground(GSGLOBAL *gs)
         0x80, 0
     );
 
-    /* 60 x 60 world units */
-    for(int z=11;z>=0;z--) {
-        for(int x=0;x<12;x++) {
+    /* Open World Ground - 90 x 90 */
+for(int z=17;z>=0;z--) {
+    for(int x=0;x<18;x++) {
 
-            float x0=-30.0f+x*5.0f;
-            float x1=x0+5.0f;
+        float x0=-45.0f+x*5.0f;
+        float x1=x0+5.0f;
 
-            float z0=-10.0f+z*5.0f;
+        float z0=-25.0f+z*5.0f;
             float z1=z0+5.0f;
 
             Vec3 a={x0,-1.5f,z0};
@@ -378,9 +378,9 @@ static void draw_ground(GSGLOBAL *gs)
     }
 
     /* Grid lines */
-    for(int x=0;x<=12;x++) {
+    for(int x=0;x<=18;x++) {
 
-        float wx=-30.0f+x*5.0f;
+        float wx=-45.0f+x*5.0f;
 
         Vec3 a={wx,-1.48f,-10.0f};
         Vec3 b={wx,-1.48f,50.0f};
@@ -399,12 +399,12 @@ if(project_world(a,&ax,&ay,&az) &&
 
     }
 
-    for(int z=0;z<=12;z++) {
+    for(int z=0;z<=18;z++) {
 
-        float wz=-10.0f+z*5.0f;
+        float wz=-25.0f+z*5.0f;
 
-        Vec3 a={-30.0f,-1.48f,wz};
-        Vec3 b={30.0f,-1.48f,wz};
+        Vec3 a={-45.0f,-1.48f,wz};
+        Vec3 b={45.0f,-1.48f,wz};
 
         
 float ax,ay,bx,by;
