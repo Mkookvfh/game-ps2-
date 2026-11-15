@@ -382,8 +382,8 @@ for(int z=17;z>=0;z--) {
 
         float wx=-45.0f+x*5.0f;
 
-        Vec3 a={wx,-1.48f,-10.0f};
-        Vec3 b={wx,-1.48f,50.0f};
+        Vec3 a={wx,-1.48f,-25.0f};
+Vec3 b={wx,-1.48f,65.0f};
 
         
 float ax,ay,bx,by;
