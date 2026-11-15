@@ -1222,6 +1222,133 @@ static float city_roof_height(float x, float z)
     return 0.0f;
 }
 
+/* =========================================
+   BUILDING COLLISION V1
+   ========================================= */
+
+typedef struct {
+    int city;
+    float x;
+    float width;
+    float front;
+    float depth;
+    float height;
+} CityCollisionBox;
+
+static const CityCollisionBox city_collision_boxes[] = {
+    /* PARIS */
+    {0,-7.0f,2.7f,11.0f,1.6f,3.0f},
+    {0, 4.1f,2.8f,10.2f,1.8f,3.4f},
+    {0,-1.0f,2.0f,15.0f,1.4f,4.2f},
+    {0,-1.2f,2.4f,24.0f,2.2f,6.0f},
+    {0, 6.5f,0.65f,15.0f,0.8f,3.8f},
+    {0,10.0f,0.65f,15.0f,0.8f,3.8f},
+
+    /* VENICE */
+    {1,-7.2f,3.2f,9.4f,2.0f,3.6f},
+    {1, 4.0f,3.0f,9.8f,2.0f,3.2f},
+    {1,-6.0f,2.4f,25.0f,2.2f,7.0f},
+
+    /* ROME */
+    {2,-7.0f,3.0f,11.0f,2.0f,3.2f},
+    {2, 4.0f,3.0f,11.0f,2.0f,3.2f},
+    {2,-2.4f,4.8f,26.0f,3.5f,5.0f},
+    {2, 6.0f,0.85f,18.0f,1.0f,3.6f},
+    {2,10.0f,0.85f,18.0f,1.0f,3.6f},
+
+    /* ENGLAND */
+    {3,-7.0f,3.4f,10.5f,2.0f,2.8f},
+    {3, 3.8f,3.4f,10.5f,2.0f,2.8f},
+    {3,-2.0f,4.0f,15.0f,2.0f,3.2f},
+    {3, 5.0f,3.4f,26.0f,3.0f,6.5f},
+    {3, 4.0f,0.8f,25.5f,2.0f,5.0f},
+    {3, 8.6f,0.8f,25.5f,2.0f,5.0f}
+};
+
+static void resolve_city_collision(
+    float old_x,
+    float old_z,
+    float *next_x,
+    float *next_z
+) {
+    const float margin = 0.22f;
+    int city = world_city_index();
+
+    /* 32 district buildings */
+    for(int i=0; i<32; i++) {
+        const CityBuildingData *b = &city_buildings[i];
+
+        if(b->city != city)
+            continue;
+
+        if(player_y >= b->height - 0.15f)
+            continue;
+
+        float left = b->x - margin;
+        float right = b->x + b->width + margin;
+        float front = b->front - margin;
+        float back = b->front + b->depth + margin;
+
+        if(old_z > front && old_z < back &&
+           *next_x > left && *next_x < right)
+            *next_x = old_x;
+
+        if(*next_x > left && *next_x < right &&
+           *next_z > front && *next_z < back)
+            *next_z = old_z;
+    }
+
+    /* Main buildings and landmarks */
+    for(int i=0;
+        i<(int)(sizeof(city_collision_boxes) /
+                sizeof(city_collision_boxes[0]));
+        i++) {
+
+        const CityCollisionBox *b =
+            &city_collision_boxes[i];
+
+        if(b->city != city)
+            continue;
+
+        if(player_y >= b->height - 0.15f)
+            continue;
+
+        float left = b->x - margin;
+        float right = b->x + b->width + margin;
+        float front = b->front - margin;
+        float back = b->front + b->depth + margin;
+
+        if(old_z > front && old_z < back &&
+           *next_x > left && *next_x < right)
+            *next_x = old_x;
+
+        if(*next_x > left && *next_x < right &&
+           *next_z > front && *next_z < back)
+            *next_z = old_z;
+    }
+
+    /* Rooftop buildings */
+    if(player_y < 0.72f) {
+        const float left_edges[2] = {-6.2f, 3.7f};
+        const float right_edges[2] = {-3.7f, 6.2f};
+
+        for(int i=0; i<2; i++) {
+            float left = left_edges[i] - margin;
+            float right = right_edges[i] + margin;
+            float front = 7.0f - margin;
+            float back = 9.0f + margin;
+
+            if(old_z > front && old_z < back &&
+               *next_x > left && *next_x < right)
+                *next_x = old_x;
+
+            if(*next_x > left && *next_x < right &&
+               *next_z > front && *next_z < back)
+                *next_z = old_z;
+        }
+    }
+}
+
 /* Parkour wall */
 static void draw_parkour_wall_at(
     GSGLOBAL *gs,
@@ -1815,36 +1942,13 @@ if(climb_pressed &&
             next_z=WALL2_BACK+0.40f;
         }
 
-        /* Rooftop building collision */
-if(player_y < 0.72f) {
-    const float margin = 0.18f;
-
-    /* Left building */
-    if(next_x > -6.2f-margin &&
-       next_x < -3.7f+margin &&
-       player_z > 7.0f-margin &&
-       player_z < 9.0f+margin)
-        next_x = player_x;
-
-    if(next_z > 7.0f-margin &&
-       next_z < 9.0f+margin &&
-       next_x > -6.2f-margin &&
-       next_x < -3.7f+margin)
-        next_z = player_z;
-
-    /* Right building */
-    if(next_x > 3.7f-margin &&
-       next_x < 6.2f+margin &&
-       player_z > 7.0f-margin &&
-       player_z < 9.0f+margin)
-        next_x = player_x;
-
-    if(next_z > 7.0f-margin &&
-       next_z < 9.0f+margin &&
-       next_x > 3.7f-margin &&
-       next_x < 6.2f+margin)
-        next_z = player_z;
-}
+        /* City Building Collision V1 */
+resolve_city_collision(
+    player_x,
+    player_z,
+    &next_x,
+    &next_z
+);
 
 player_x=next_x;
 player_z=next_z;
