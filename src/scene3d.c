@@ -550,6 +550,16 @@ const u64 window=GS_SETREG_RGBAQ(
 /* Draw streets and alleys */
 draw_city_roads(gs,world_city_index());
 
+/* Draw additional city districts */
+draw_city_districts(
+    gs,
+    world_city_index(),
+    facade,
+    stone,
+    roof,
+    window
+);
+
 /* City Map V3 - Rooftop Parkour */
 draw_city_building(
     gs,-6.2f,2.5f,
