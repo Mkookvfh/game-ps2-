@@ -3126,16 +3126,16 @@ while(1) {
     gsKit_clear(gs,sky);
 
     /* Cinematic Sky */
-    draw_cinematic_sky(gs,era);
+    //draw_cinematic_sky(gs,era);
 
-    draw_ground(gs);
-draw_player_shadow(gs);
-draw_city_map(gs);
-draw_outskirts(gs);
+    //draw_ground(gs);
+//draw_player_shadow(gs);
+//draw_city_map(gs);
+//draw_outskirts(gs);
 //draw_forest_trail(gs);
-draw_parkour_wall(gs);
-    draw_player(gs);
-    draw_cube(gs,angle);
+//draw_parkour_wall(gs);
+    //draw_player(gs);
+    //draw_cube(gs,angle);
 
     gsKit_queue_exec(gs);
     gsKit_sync_flip(gs);
