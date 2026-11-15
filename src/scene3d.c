@@ -1298,6 +1298,12 @@ static void resolve_city_collision(
 
         if(b->city != city)
             continue;
+        if(city_doorway_open(
+    *next_x,
+    b->x,
+    b->width
+))
+    continue;
 
         if(player_y >= b->height - 0.15f)
             continue;
@@ -1327,6 +1333,12 @@ static void resolve_city_collision(
 
         if(b->city != city)
             continue;
+        if(city_doorway_open(
+    *next_x,
+    b->x,
+    b->width
+))
+    continue;
 
         if(player_y >= b->height - 0.15f)
             continue;
