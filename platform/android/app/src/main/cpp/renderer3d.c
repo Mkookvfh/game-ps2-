@@ -1,4 +1,5 @@
 #include "renderer3d.h"
+#include <android/log.h>
 #include <math.h>
 #include <string.h>
 
