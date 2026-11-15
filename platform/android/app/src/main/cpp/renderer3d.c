@@ -153,6 +153,55 @@ void Renderer3D_Draw(Renderer3D*r,const MueangGame*g,int w,int h){
     draw_tree(r,vp,15,1,.9f);draw_tree(r,vp,-15,8,1.1f);draw_tree(r,vp,-8,14,.9f);draw_tree(r,vp,9,13,1);draw_tree(r,vp,16,17,1);
     draw_access_stairs(r,vp);draw_floating_island(r,vp);draw_parkour_props(r,vp);
 
+
+    /* Feature Pack 4C: Render guards and civilians */
+    for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
+        const MueangNPC *npc = &g->npcs[i];
+
+        if (!npc->alive || npc->state == 3)
+            continue;
+
+        float nx = npc->x;
+        float nz = npc->z;
+        float ny = MueangGame_GroundHeight(nx, nz);
+        float bodyColorR, bodyColorG, bodyColorB;
+
+        if (npc->type == 0) {
+            /* Guard */
+            bodyColorR = 0.18f;
+            bodyColorG = 0.22f;
+            bodyColorB = 0.32f;
+
+            if (npc->state == 2) {
+                bodyColorR = 0.75f;
+                bodyColorG = 0.12f;
+                bodyColorB = 0.08f;
+            }
+        } else {
+            /* Civilian */
+            bodyColorR = 0.48f;
+            bodyColorG = 0.34f;
+            bodyColorB = 0.20f;
+        }
+
+        /* Body */
+        draw_cube(r, vp, nx, ny + 0.85f, nz,
+                  0.48f, 1.15f, 0.38f, npc->yaw,
+                  bodyColorR, bodyColorG, bodyColorB);
+
+        /* Head */
+        draw_cube(r, vp, nx, ny + 1.58f, nz,
+                  0.34f, 0.34f, 0.34f, npc->yaw,
+                  0.76f, 0.62f, 0.48f);
+
+        /* Guard helmet */
+        if (npc->type == 0) {
+            draw_cube(r, vp, nx, ny + 1.78f, nz,
+                      0.40f, 0.12f, 0.40f, npc->yaw,
+                      0.28f, 0.30f, 0.34f);
+        }
+    }
+
     float py=player_y;
     if(g->player.slide_timer>0.0f || g->player.roll_timer>0.0f){
         draw_cube(r,vp,px,py+.38f,pz,.82f,.48f,.42f,g->player.yaw,.78f,.76f,.70f);
