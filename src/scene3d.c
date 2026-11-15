@@ -1813,13 +1813,15 @@ static void draw_player(GSGLOBAL *gs)
         metal,leather_dark,metal
     );
 
+    
     /* Diagonal chest strap */
     draw_player_part(
         gs,-0.12f,0.02f,0.245f,
         0.055f,0.46f,0.025f,
-        -0.24f,0.0f,
+        -0.24f,0.0f,0.0f,
         leather,leather_dark,leather
     );
+
 
     /* Left shoulder armor */
     draw_player_part(
