@@ -41,6 +41,8 @@ static float player_z = 3.0f;
 static float player_y = 0.0f;
 static float player_yaw = 0.0f;
 static float camera_yaw = 0.0f;
+static float camera_pitch = 0.12f;
+static int camera_manual = 0;
 
 static float jump_velocity = 0.0f;
 static int is_jumping = 0;
@@ -116,8 +118,8 @@ static int project_world(
     float camera_x = dx * cs - dz * sn;
     float camera_z = 8.0f + dx * sn + dz * cs;
 
-    float cp = cosf(CAMERA_PITCH);
-    float sp = sinf(CAMERA_PITCH);
+    float cp = cosf(camera_pitch);
+    float sp = sinf(camera_pitch);
 
     float cy = dy * cp - camera_z * sp;
     float cz = dy * sp + camera_z * cp;
