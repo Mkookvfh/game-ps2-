@@ -664,6 +664,55 @@ draw_city_building(
     draw_rect(gs,1.08f,-1.4f,
         1.18f,4.4f,23.96f,trim);
 }
+/* Paris V2 - Grand Stone Arch */
+{
+    u64 arch_stone = GS_SETREG_RGBAQ(
+        175, 155, 125, 0x80, 0
+    );
+
+    u64 arch_shadow = GS_SETREG_RGBAQ(
+        105, 85, 65, 0x80, 0
+    );
+
+    /* Left pillar */
+    draw_city_building(
+        gs,
+        6.5f, 0.65f,
+        15.0f, 0.8f,
+        3.8f,
+        arch_stone, arch_shadow,
+        arch_stone, window
+    );
+
+    /* Right pillar */
+    draw_city_building(
+        gs,
+        10.0f, 0.65f,
+        15.0f, 0.8f,
+        3.8f,
+        arch_stone, arch_shadow,
+        arch_stone, window
+    );
+
+    /* Top beam */
+    draw_city_building(
+        gs,
+        6.5f, 4.15f,
+        15.0f, 0.8f,
+        0.65f,
+        arch_stone, arch_shadow,
+        arch_stone, window
+    );
+
+    /* Decorative top */
+    draw_landmark_roof(
+        gs,
+        6.5f, 4.15f,
+        15.0f, 0.8f,
+        3.3f, 4.3f,
+        arch_shadow
+    );
+}
             break;
 
         /* VENICE */
@@ -762,6 +811,52 @@ draw_city_building(
         draw_rect(gs,x,0.20f,
             x+0.06f,0.55f,9.52f,rail);
     }
+}
+/* Venice V2 - Stone Canal Bridge */
+{
+    u64 bridge = GS_SETREG_RGBAQ(
+        180, 155, 120, 0x80, 0
+    );
+
+    u64 bridge_dark = GS_SETREG_RGBAQ(
+        105, 85, 65, 0x80, 0
+    );
+
+    /* Bridge deck */
+    Vec3 a={-2.3f,-1.05f,12.0f};
+    Vec3 b={ 2.3f,-1.05f,12.0f};
+    Vec3 c={ 2.3f,-1.05f,13.5f};
+    Vec3 d={-2.3f,-1.05f,13.5f};
+
+    draw_triangle(gs,a,b,c,bridge);
+    draw_triangle(gs,a,c,d,bridge);
+
+    /* Left ramp */
+    Vec3 l1={-2.3f,-1.5f,11.5f};
+    Vec3 l2={-2.3f,-1.05f,12.0f};
+    Vec3 l3={-2.3f,-1.5f,12.0f};
+
+    draw_triangle(gs,l1,l2,l3,bridge_dark);
+
+    /* Right ramp */
+    Vec3 r1={2.3f,-1.5f,11.5f};
+    Vec3 r2={2.3f,-1.05f,12.0f};
+    Vec3 r3={2.3f,-1.5f,12.0f};
+
+    draw_triangle(gs,r1,r2,r3,bridge_dark);
+
+    /* Bridge railings */
+    draw_rect(
+        gs,-2.3f,-0.85f,
+        2.3f,-0.72f,
+        12.0f,bridge_dark
+    );
+
+    draw_rect(
+        gs,-2.3f,-0.85f,
+        2.3f,-0.72f,
+        13.5f,bridge_dark
+    );
 }
             break;
 
@@ -868,6 +963,62 @@ draw_city_building(
     draw_triangle(
         gs,a,b,c,
         GS_SETREG_RGBAQ(165,125,80,0x80,0)
+    );
+}
+/* Rome V2 - Triumphal Arch */
+{
+    u64 marble = GS_SETREG_RGBAQ(
+        190, 175, 145, 0x80, 0
+    );
+
+    u64 marble_dark = GS_SETREG_RGBAQ(
+        125, 110, 85, 0x80, 0
+    );
+
+    /* Left tower */
+    draw_city_building(
+        gs,
+        6.0f, 0.85f,
+        18.0f, 1.0f,
+        3.6f,
+        marble, marble_dark,
+        marble, window
+    );
+
+    /* Right tower */
+    draw_city_building(
+        gs,
+        10.0f, 0.85f,
+        18.0f, 1.0f,
+        3.6f,
+        marble, marble_dark,
+        marble, window
+    );
+
+    /* Upper arch beam */
+    draw_city_building(
+        gs,
+        6.0f, 4.85f,
+        18.0f, 1.0f,
+        0.8f,
+        marble, marble_dark,
+        marble, window
+    );
+
+    /* Top decoration */
+    draw_landmark_roof(
+        gs,
+        6.0f, 4.85f,
+        18.0f, 1.0f,
+        2.9f, 4.1f,
+        marble_dark
+    );
+
+    /* Decorative horizontal line */
+    draw_rect(
+        gs,6.0f,2.75f,
+        10.85f,2.90f,
+        17.97f,marble_dark
     );
 }
             break;
@@ -983,6 +1134,72 @@ draw_city_building(
 
     draw_rect(gs,3.8f,0.75f,
         7.2f,0.90f,10.46f,timber);
+}
+/* England V2 - Medieval Castle Gate */
+{
+    u64 castle = GS_SETREG_RGBAQ(
+        135, 128, 110, 0x80, 0
+    );
+
+    u64 castle_dark = GS_SETREG_RGBAQ(
+        75, 72, 65, 0x80, 0
+    );
+
+    u64 gate = GS_SETREG_RGBAQ(
+        42, 32, 25, 0x80, 0
+    );
+
+    /* Left gate tower */
+    draw_city_building(
+        gs,
+        6.0f, 1.1f,
+        18.0f, 1.5f,
+        4.5f,
+        castle, castle_dark,
+        castle_dark, window
+    );
+
+    /* Right gate tower */
+    draw_city_building(
+        gs,
+        10.0f, 1.1f,
+        18.0f, 1.5f,
+        4.5f,
+        castle, castle_dark,
+        castle_dark, window
+    );
+
+    /* Castle wall above gate */
+    draw_city_building(
+        gs,
+        6.0f, 5.1f,
+        18.0f, 1.5f,
+        0.9f,
+        castle, castle_dark,
+        castle_dark, window
+    );
+
+    /* Dark gate entrance */
+    draw_rect(
+        gs,
+        7.1f,-1.4f,
+        10.0f,1.4f,
+        17.97f,
+        gate
+    );
+
+    /* Battlements */
+    for(int i=0;i<5;i++) {
+        float x=6.0f+i*1.2f;
+
+        draw_rect(
+            gs,
+            x,3.9f,
+            x+0.55f,4.5f,
+            17.95f,
+            castle_dark
+        );
+    }
 }
             break;
     }
