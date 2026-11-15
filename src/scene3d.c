@@ -641,6 +641,29 @@ draw_city_building(
         tower_roof
     );
 }
+/* Paris - Stone Facade Details */
+{
+    u64 trim = GS_SETREG_RGBAQ(
+        190, 165, 125, 0x80, 0
+    );
+
+    /* Horizontal stone bands */
+    draw_rect(gs,-1.2f,-0.25f,
+        1.2f,-0.15f,23.97f,trim);
+
+    draw_rect(gs,-1.2f,1.65f,
+        1.2f,1.75f,23.97f,trim);
+
+    draw_rect(gs,-1.2f,3.55f,
+        1.2f,3.65f,23.97f,trim);
+
+    /* Corner stone pillars */
+    draw_rect(gs,-1.18f,-1.4f,
+        -1.08f,4.4f,23.96f,trim);
+
+    draw_rect(gs,1.08f,-1.4f,
+        1.18f,4.4f,23.96f,trim);
+}
             break;
 
         /* VENICE */
@@ -701,6 +724,44 @@ draw_city_building(
         5.5f, 8.0f,
         tower_roof
     );
+}
+/* Venice - Canal Side Balconies */
+{
+    u64 balcony = GS_SETREG_RGBAQ(
+        185, 155, 115, 0x80, 0
+    );
+
+    u64 rail = GS_SETREG_RGBAQ(
+        65, 48, 38, 0x80, 0
+    );
+
+    /* Left balcony */
+    draw_rect(gs,-7.35f,0.10f,
+        -3.85f,0.20f,9.15f,balcony);
+
+    draw_rect(gs,-7.30f,0.55f,
+        -3.90f,0.65f,9.12f,rail);
+
+    for(int i=0;i<5;i++) {
+        float x=-7.15f+i*0.75f;
+
+        draw_rect(gs,x,0.20f,
+            x+0.06f,0.55f,9.12f,rail);
+    }
+
+    /* Right balcony */
+    draw_rect(gs,3.85f,0.10f,
+        7.25f,0.20f,9.55f,balcony);
+
+    draw_rect(gs,3.90f,0.55f,
+        7.20f,0.65f,9.52f,rail);
+
+    for(int i=0;i<5;i++) {
+        float x=4.05f+i*0.70f;
+
+        draw_rect(gs,x,0.20f,
+            x+0.06f,0.55f,9.52f,rail);
+    }
 }
             break;
 
@@ -781,6 +842,34 @@ draw_city_building(
         temple_roof
     );
 }
+/* Rome - Classical Column Capitals */
+{
+    u64 capital = GS_SETREG_RGBAQ(
+        220, 205, 170, 0x80, 0
+    );
+
+    for(int i=0;i<6;i++) {
+        float cx=-2.0f+i*0.8f;
+
+        draw_rect(
+            gs,
+            cx-0.22f,1.05f,
+            cx+0.22f,1.22f,
+            25.58f,
+            capital
+        );
+    }
+
+    /* Temple front pediment */
+    Vec3 a={-2.6f,3.45f,25.60f};
+    Vec3 b={ 2.6f,3.45f,25.60f};
+    Vec3 c={ 0.0f,5.30f,25.60f};
+
+    draw_triangle(
+        gs,a,b,c,
+        GS_SETREG_RGBAQ(165,125,80,0x80,0)
+    );
+}
             break;
 
         /* ENGLAND */
@@ -856,6 +945,44 @@ draw_city_building(
         keep_roof,
         window
     );
+}
+/* England - Medieval Timber Frames */
+{
+    u64 timber = GS_SETREG_RGBAQ(
+        65, 42, 28, 0x80, 0
+    );
+
+    /* Left house */
+    draw_rect(gs,-6.85f,-1.35f,
+        -6.65f,1.15f,10.47f,timber);
+
+    draw_rect(gs,-5.25f,-1.35f,
+        -5.05f,1.15f,10.47f,timber);
+
+    draw_rect(gs,-3.75f,-1.35f,
+        -3.60f,1.15f,10.47f,timber);
+
+    draw_rect(gs,-7.0f,-0.35f,
+        -3.6f,-0.20f,10.46f,timber);
+
+    draw_rect(gs,-7.0f,0.75f,
+        -3.6f,0.90f,10.46f,timber);
+
+    /* Right house */
+    draw_rect(gs,4.0f,-1.35f,
+        4.18f,1.15f,10.47f,timber);
+
+    draw_rect(gs,5.55f,-1.35f,
+        5.73f,1.15f,10.47f,timber);
+
+    draw_rect(gs,7.0f,-1.35f,
+        7.15f,1.15f,10.47f,timber);
+
+    draw_rect(gs,3.8f,-0.35f,
+        7.2f,-0.20f,10.46f,timber);
+
+    draw_rect(gs,3.8f,0.75f,
+        7.2f,0.90f,10.46f,timber);
 }
             break;
     }
