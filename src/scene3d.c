@@ -1432,6 +1432,174 @@ draw_city_building(
     }
 }
 
+
+/* =========================================
+   OPEN WORLD - OUTSKIRTS V1
+   ========================================= */
+
+static void draw_outskirts_tree(
+    GSGLOBAL *gs,
+    float x,
+    float z,
+    float scale
+) {
+    u64 trunk = GS_SETREG_RGBAQ(
+        85, 52, 30, 0x80, 0
+    );
+
+    u64 leaves = GS_SETREG_RGBAQ(
+        42, 88, 48, 0x80, 0
+    );
+
+    u64 leaves_dark = GS_SETREG_RGBAQ(
+        30, 65, 38, 0x80, 0
+    );
+
+    /* Tree trunk */
+    draw_city_building(
+        gs,
+        x - 0.16f * scale,
+        0.32f * scale,
+        z,
+        0.32f * scale,
+        1.35f * scale,
+        trunk,
+        trunk,
+        trunk,
+        trunk
+    );
+
+    /* Tree canopy */
+    draw_landmark_roof(
+        gs,
+        x - 0.95f * scale,
+        1.9f * scale,
+        z - 0.95f * scale,
+        1.9f * scale,
+        -0.15f + 1.0f * scale,
+        2.9f * scale,
+        leaves
+    );
+
+    draw_landmark_roof(
+        gs,
+        x - 0.65f * scale,
+        1.3f * scale,
+        z - 0.65f * scale,
+        1.3f * scale,
+        0.65f * scale,
+        3.35f * scale,
+        leaves_dark
+    );
+}
+
+static void draw_outskirts_hill(
+    GSGLOBAL *gs,
+    float x,
+    float z,
+    float width,
+    float height,
+    float depth
+) {
+    u64 hill_color = GS_SETREG_RGBAQ(
+        72, 91, 65, 0x80, 0
+    );
+
+    Vec3 a = {x, -1.5f, z};
+    Vec3 b = {x + width, -1.5f, z};
+    Vec3 c = {x + width * 0.5f, height, z + depth};
+
+    draw_triangle(gs, a, b, c, hill_color);
+
+    Vec3 d = {x, -1.5f, z + depth};
+
+    draw_triangle(gs, b, d, c, hill_color);
+}
+
+static void draw_outskirts(GSGLOBAL *gs)
+{
+    const u64 path = GS_SETREG_RGBAQ(
+        112, 101, 79, 0x80, 0
+    );
+
+    const u64 house = GS_SETREG_RGBAQ(
+        145, 119, 82, 0x80, 0
+    );
+
+    const u64 roof = GS_SETREG_RGBAQ(
+        95, 55, 38, 0x80, 0
+    );
+
+    const u64 dark = GS_SETREG_RGBAQ(
+        75, 65, 52, 0x80, 0
+    );
+
+    const u64 window = GS_SETREG_RGBAQ(
+        30, 35, 40, 0x80, 0
+    );
+
+    /* Road connecting city to outskirts */
+    draw_ground_quad(
+        gs,
+        -1.8f, 1.8f,
+        18.0f, 55.0f,
+        path
+    );
+
+    /* Suburban houses - left */
+    draw_city_building(
+        gs,
+        -29.0f, 3.2f,
+        25.0f, 2.8f, 2.7f,
+        house, dark, roof, window
+    );
+
+    draw_city_building(
+        gs,
+        -25.0f, 2.8f,
+        39.0f, 2.5f, 2.4f,
+        house, dark, roof, window
+    );
+
+    /* Suburban houses - right */
+    draw_city_building(
+        gs,
+        25.0f, 3.2f,
+        29.0f, 2.8f, 2.7f,
+        house, dark, roof, window
+    );
+
+    draw_city_building(
+        gs,
+        29.0f, 3.0f,
+        43.0f, 2.5f, 2.5f,
+        house, dark, roof, window
+    );
+
+    /* Forest line - left */
+    draw_outskirts_tree(gs, -22.0f, 23.0f, 1.0f);
+    draw_outskirts_tree(gs, -26.0f, 31.0f, 1.2f);
+    draw_outskirts_tree(gs, -21.0f, 40.0f, 0.9f);
+    draw_outskirts_tree(gs, -34.0f, 45.0f, 1.3f);
+
+    /* Forest line - right */
+    draw_outskirts_tree(gs, 22.0f, 24.0f, 1.0f);
+    draw_outskirts_tree(gs, 27.0f, 34.0f, 1.2f);
+    draw_outskirts_tree(gs, 22.0f, 43.0f, 0.9f);
+    draw_outskirts_tree(gs, 35.0f, 48.0f, 1.3f);
+
+    /* Distant hills */
+    draw_outskirts_hill(
+        gs, -42.0f, 53.0f,
+        25.0f, 3.0f, 10.0f
+    );
+
+    draw_outskirts_hill(
+        gs, 17.0f, 55.0f,
+        25.0f, 3.8f, 9.0f
+    );
+}
+
 /* =========================================
    CITY MAP V3 - ROOFTOP HEIGHT
    ========================================= */
@@ -2845,6 +3013,7 @@ while(1) {
     draw_ground(gs);
 draw_player_shadow(gs);
 draw_city_map(gs);
+draw_outskirts(gs);
     draw_parkour_wall(gs);
     draw_player(gs);
     draw_cube(gs,angle);
