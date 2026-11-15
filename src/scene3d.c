@@ -1591,23 +1591,102 @@ static void draw_player_limb(
     draw_triangle(gs,p[0],p[2],p[3],color);
 }
 
-/* Player */
+
+/* =========================================
+   MUEANG ISARA - LOW POLY 3D MODEL V1
+   ========================================= */
+
+static void draw_player_part(
+    GSGLOBAL *gs,
+    float cx, float cy, float cz,
+    float hx, float hy, float hz,
+    float angle,
+    float pivot_x, float pivot_y,
+    u64 front_color,
+    u64 side_color,
+    u64 top_color
+) {
+    float cs = cosf(player_yaw);
+    float sn = sinf(player_yaw);
+
+    float ac = cosf(angle);
+    float as = sinf(angle);
+
+    Vec3 v[8];
+
+    const float sx[8] = {
+        -1, 1, 1, -1, -1, 1, 1, -1
+    };
+
+    const float sy[8] = {
+        -1, -1, 1, 1, -1, -1, 1, 1
+    };
+
+    const float sz[8] = {
+        -1, -1, -1, -1, 1, 1, 1, 1
+    };
+
+    for(int i=0; i<8; i++) {
+        float lx = cx + sx[i]*hx + body_sway;
+        float ly = cy + sy[i]*hy;
+
+        float rx = lx - pivot_x;
+        float ry = ly - pivot_y;
+
+        float tx = rx*ac - ry*as + pivot_x;
+        float ty = rx*as + ry*ac + pivot_y;
+
+        v[i].x = player_x + tx*cs + sz[i]*hz*sn;
+        v[i].y = player_y + ty + body_bob;
+        v[i].z = player_z - tx*sn + sz[i]*hz*cs;
+    }
+
+    /* Front */
+    draw_triangle(gs,v[4],v[5],v[6],front_color);
+    draw_triangle(gs,v[4],v[6],v[7],front_color);
+
+    /* Back */
+    draw_triangle(gs,v[0],v[2],v[1],side_color);
+    draw_triangle(gs,v[0],v[3],v[2],side_color);
+
+    /* Left */
+    draw_triangle(gs,v[0],v[4],v[7],side_color);
+    draw_triangle(gs,v[0],v[7],v[3],side_color);
+
+    /* Right */
+    draw_triangle(gs,v[1],v[2],v[6],side_color);
+    draw_triangle(gs,v[1],v[6],v[5],side_color);
+
+    /* Top */
+    draw_triangle(gs,v[3],v[7],v[6],top_color);
+    draw_triangle(gs,v[3],v[6],v[2],top_color);
+
+    /* Bottom */
+    draw_triangle(gs,v[0],v[1],v[5],side_color);
+    draw_triangle(gs,v[0],v[5],v[4],side_color);
+}
+
+
+/* =========================================
+   PLAYER MODEL V1
+   ========================================= */
+
 static void draw_player(GSGLOBAL *gs)
 {
     const u64 coat =
         GS_SETREG_RGBAQ(30,42,65,0x80,0);
 
-    const u64 coat_light =
-        GS_SETREG_RGBAQ(55,72,100,0x80,0);
+    const u64 coat_side =
+        GS_SETREG_RGBAQ(19,27,42,0x80,0);
+
+    const u64 coat_top =
+        GS_SETREG_RGBAQ(65,82,110,0x80,0);
 
     const u64 trousers =
         GS_SETREG_RGBAQ(35,40,52,0x80,0);
 
     const u64 boots =
         GS_SETREG_RGBAQ(75,42,25,0x80,0);
-
-    const u64 leather =
-        GS_SETREG_RGBAQ(125,78,35,0x80,0);
 
     const u64 skin =
         GS_SETREG_RGBAQ(190,135,95,0x80,0);
@@ -1619,100 +1698,124 @@ static void draw_player(GSGLOBAL *gs)
     float arm_swing;
 
     if(is_hanging) {
-    leg_swing = 0.30f;
-    arm_swing = 0.0f;
-}
-else if(is_mantling) {
-    leg_swing = 0.45f;
-    arm_swing = -0.55f;
-}
-else if(is_climbing) {
-    leg_swing = sinf(climb_timer*PI)*0.45f;
-    arm_swing = -0.65f;
-}
-else {
-    leg_swing = is_jumping
-        ? 0.18f
-        : sinf(walk_time)*
-          (is_running ? 0.62f : 0.38f);
+        leg_swing = 0.30f;
+        arm_swing = 0.0f;
+    }
+    else if(is_mantling) {
+        leg_swing = 0.45f;
+        arm_swing = -0.55f;
+    }
+    else if(is_climbing) {
+        leg_swing = sinf(climb_timer*PI)*0.45f;
+        arm_swing = -0.65f;
+    }
+    else {
+        leg_swing = is_jumping
+            ? 0.18f
+            : sinf(walk_time)*
+              (is_running ? 0.62f : 0.38f);
 
-    arm_swing = is_jumping
-        ? -0.48f
-        : -sinf(walk_time)*
-          (is_running ? 0.48f : 0.24f);
-}
+        arm_swing = is_jumping
+            ? -0.48f
+            : -sinf(walk_time)*
+              (is_running ? 0.48f : 0.24f);
+    }
 
-    /* Legs */
-    draw_player_limb(gs,
-        -0.17f,-0.55f,
-        0.78f,0.23f,
-        leg_swing,0.15f,trousers);
+    /* Left leg */
+    draw_player_part(
+        gs,-0.18f,-0.78f,0.0f,
+        0.13f,0.34f,0.15f,
+        leg_swing,
+        -0.18f,-0.46f,
+        trousers,trousers,trousers
+    );
 
-    draw_player_limb(gs,
-         0.17f,-0.55f,
-        0.78f,0.23f,
-        -leg_swing,0.15f,trousers);
+    /* Right leg */
+    draw_player_part(
+        gs,0.18f,-0.78f,0.0f,
+        0.13f,0.34f,0.15f,
+        -leg_swing,
+        0.18f,-0.46f,
+        trousers,trousers,trousers
+    );
 
-    /* Boots */
-    draw_player_limb(gs,
-        -0.17f+sinf(leg_swing)*0.78f,
-        -1.30f,
-        0.25f,0.30f,
-        leg_swing,0.16f,boots);
+    /* Left boot */
+    draw_player_part(
+        gs,-0.18f,-1.27f,0.08f,
+        0.15f,0.14f,0.23f,
+        leg_swing,
+        -0.18f,-0.46f,
+        boots,boots,boots
+    );
 
-    draw_player_limb(gs,
-         0.17f-sinf(leg_swing)*0.78f,
-        -1.30f,
-        0.25f,0.30f,
-        -leg_swing,0.16f,boots);
+    /* Right boot */
+    draw_player_part(
+        gs,0.18f,-1.27f,0.08f,
+        0.15f,0.14f,0.23f,
+        -leg_swing,
+        0.18f,-0.46f,
+        boots,boots,boots
+    );
 
-    /* Arms */
-    draw_player_limb(gs,
-        -0.39f,0.34f,
-        0.78f,0.21f,
-        arm_swing,0.17f,coat);
+    /* Left arm */
+    draw_player_part(
+        gs,-0.48f,0.02f,0.0f,
+        0.12f,0.34f,0.14f,
+        arm_swing,
+        -0.40f,0.38f,
+        coat,coat_side,coat_top
+    );
 
-    draw_player_limb(gs,
-         0.39f,0.34f,
-        0.78f,0.21f,
-        -arm_swing,0.17f,coat);
+    /* Right arm */
+    draw_player_part(
+        gs,0.48f,0.02f,0.0f,
+        0.12f,0.34f,0.14f,
+        -arm_swing,
+        0.40f,0.38f,
+        coat,coat_side,coat_top
+    );
 
-    /* Torso */
-    draw_player_rect(gs,
-        -0.38f,-0.64f,
-         0.38f,0.43f,
-        0.18f,coat);
+    /* Main torso */
+    draw_player_part(
+        gs,0.0f,-0.03f,0.0f,
+        0.40f,0.55f,0.22f,
+        0.0f,0.0f,0.0f,
+        coat,coat_side,coat_top
+    );
 
-    /* Coat center */
-    draw_player_rect(gs,
-        -0.10f,-0.61f,
-         0.10f,0.35f,
-        0.19f,coat_light);
-
-    /* Belt */
-    draw_player_rect(gs,
-        -0.35f,-0.55f,
-         0.35f,-0.43f,
-        0.20f,leather);
+    /* Waist */
+    draw_player_part(
+        gs,0.0f,-0.58f,0.0f,
+        0.34f,0.16f,0.23f,
+        0.0f,0.0f,0.0f,
+        boots,coat_side,coat_top
+    );
 
     /* Neck */
-    draw_player_rect(gs,
-        -0.12f,0.40f,
-         0.12f,0.68f,
-        0.20f,skin);
+    draw_player_part(
+        gs,0.0f,0.60f,0.0f,
+        0.13f,0.15f,0.13f,
+        0.0f,0.0f,0.0f,
+        skin,skin,skin
+    );
 
-    /* Face */
-    draw_player_rect(gs,
-        -0.19f,0.65f,
-         0.19f,1.12f,
-        0.21f,skin);
+    /* Head */
+    draw_player_part(
+        gs,0.0f,0.88f,0.0f,
+        0.21f,0.25f,0.19f,
+        0.0f,0.0f,0.0f,
+        skin,skin,skin
+    );
 
     /* Hood */
-    draw_player_rect(gs,
-        -0.23f,1.08f,
-         0.23f,1.30f,
-        0.22f,hood);
+    draw_player_part(
+        gs,0.0f,1.15f,-0.025f,
+        0.25f,0.18f,0.23f,
+        0.0f,0.0f,0.0f,
+        hood,coat_side,coat_top
+    );
 }
+
 
 /* Controller and movement */
 static void update_player(void)
