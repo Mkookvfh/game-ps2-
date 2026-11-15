@@ -175,50 +175,21 @@ static void draw_disc(
     );
 }
 
+
 static void render_scene(GameState *s, int w, int h)
 {
-    static const GLfloat ground[] = {
-        -1,-0.65f,0, 1,-0.65f,0, -1,-1,0,
-        -1,-1,0, 1,-0.65f,0, 1,-1,0
-    };
+    /* Draw 3D world */
+    Renderer3D_Draw(&s->renderer, &s->game, w, h);
 
-    static const GLfloat building[] = {
-        -0.72f,-0.25f,0, -0.25f,-0.25f,0, -0.72f,0.48f,0,
-        -0.72f,0.48f,0, -0.25f,-0.25f,0, -0.25f,0.48f,0
-    };
-
-    static const GLfloat roof[] = {
-        -0.80f,0.48f,0, -0.17f,0.48f,0, -0.48f,0.78f,0
-    };
-
-    GLfloat player[] = {
-        -0.08f,-0.55f,0, 0.08f,-0.55f,0, -0.08f,-0.12f,0,
-        -0.08f,-0.12f,0, 0.08f,-0.55f,0, 0.08f,-0.12f,0
-    };
-
-    float px = clampf(s->game.player.x * 0.08f, -0.8f, 0.8f);
-    float pz = clampf(s->game.player.z * 0.08f, -0.3f, 0.3f);
-
-    for (int i = 0; i < 6; i++) {
-        player[i * 3] += px;
-        player[i * 3 + 1] += pz;
-    }
-
-    glViewport(0, 0, w, h);
-    glClearColor(0.35f, 0.62f, 0.82f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-
+    /* Draw touch controls on top of 3D scene */
+    glDisable(GL_DEPTH_TEST);
     glUseProgram(s->program);
 
-    draw_shape(s, ground, 6, 0.25f, 0.48f, 0.22f);
-    draw_shape(s, building, 6, 0.65f, 0.48f, 0.30f);
-    draw_shape(s, roof, 3, 0.45f, 0.18f, 0.12f);
-
-    draw_shape(s, player, 6, 0.85f, 0.85f, 0.90f);
-
     /* Left virtual joystick */
-    draw_disc(s, -0.72f, -0.72f, 0.16f,
-              0.12f, 0.12f, 0.12f);
+    draw_disc(
+        s, -0.72f, -0.72f, 0.16f,
+        0.12f, 0.12f, 0.12f
+    );
 
     draw_disc(
         s,
@@ -228,16 +199,22 @@ static void render_scene(GameState *s, int w, int h)
         0.85f, 0.85f, 0.90f
     );
 
-    /* Right camera touch indicator */
+    /* Right camera indicator */
     if (s->right_pointer != INVALID_POINTER_ID) {
-        draw_disc(s, 0.72f, -0.72f, 0.13f,
-                  0.20f, 0.20f, 0.20f);
-        draw_disc(s, 0.72f, -0.72f, 0.06f,
-                  0.85f, 0.85f, 0.90f);
+        draw_disc(
+            s, 0.72f, -0.72f, 0.13f,
+            0.20f, 0.20f, 0.20f
+        );
+
+        draw_disc(
+            s, 0.72f, -0.72f, 0.06f,
+            0.85f, 0.85f, 0.90f
+        );
     }
 
     glDisableVertexAttribArray(s->position);
 }
+
 
 static void update_joystick(GameState *s, float x, float y)
 {
