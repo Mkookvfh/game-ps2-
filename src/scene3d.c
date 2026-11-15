@@ -1694,6 +1694,20 @@ static void draw_player(GSGLOBAL *gs)
     const u64 hood =
         GS_SETREG_RGBAQ(22,27,38,0x80,0);
 
+/* Character Model V3 - Dynamic Cloak */
+
+const u64 cloak =
+    GS_SETREG_RGBAQ(28,31,43,0x80,0);
+
+const u64 cloak_side =
+    GS_SETREG_RGBAQ(16,19,28,0x80,0);
+
+const u64 cloak_top =
+    GS_SETREG_RGBAQ(52,45,48,0x80,0);
+
+const u64 cloak_edge =
+    GS_SETREG_RGBAQ(110,55,38,0x80,0);
+
     float leg_swing;
     float arm_swing;
 
@@ -1720,6 +1734,40 @@ static void draw_player(GSGLOBAL *gs)
             : -sinf(walk_time)*
               (is_running ? 0.48f : 0.24f);
     }
+
+/* Dynamic cloak movement */
+
+float cloak_swing =
+    sinf(walk_time * 0.7f) *
+    (is_running ? 0.16f : 0.08f);
+
+if(is_jumping)
+    cloak_swing -= 0.12f;
+
+if(is_hanging || is_climbing)
+    cloak_swing = 0.04f;
+
+/* Main cloak - behind the character */
+
+draw_player_part(
+    gs,
+    0.0f,-0.18f,0.27f,
+    0.38f,0.66f,0.045f,
+    cloak_swing,
+    0.0f,0.45f,
+    cloak,cloak_side,cloak_top
+);
+
+/* Cloak lower edge */
+
+draw_player_part(
+    gs,
+    0.0f,-0.79f,0.30f,
+    0.38f,0.055f,0.055f,
+    cloak_swing,
+    0.0f,0.45f,
+    cloak_edge,cloak_side,cloak_edge
+);
 
     /* Left leg */
     draw_player_part(
