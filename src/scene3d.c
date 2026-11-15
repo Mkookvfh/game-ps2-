@@ -323,6 +323,33 @@ static void draw_city_building(
 }
 
 
+/* City Landmark - Pyramid Roof */
+static void draw_landmark_roof(
+    GSGLOBAL *gs,
+    float x,
+    float width,
+    float front,
+    float depth,
+    float base_y,
+    float peak_y,
+    u64 color
+) {
+    float mid_x = x + width * 0.5f;
+    float mid_z = front + depth * 0.5f;
+
+    Vec3 a = {x, base_y, front};
+    Vec3 b = {x + width, base_y, front};
+    Vec3 c = {x + width, base_y, front + depth};
+    Vec3 d = {x, base_y, front + depth};
+    Vec3 top = {mid_x, peak_y, mid_z};
+
+    draw_triangle(gs, a, b, top, color);
+    draw_triangle(gs, b, c, top, color);
+    draw_triangle(gs, c, d, top, color);
+    draw_triangle(gs, d, a, top, color);
+}
+
+
 /* =========================================
    CITY DISTRICTS V1 - 32 EXTRA BUILDINGS
    ========================================= */
