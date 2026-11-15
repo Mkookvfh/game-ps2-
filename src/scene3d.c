@@ -3132,7 +3132,7 @@ while(1) {
 draw_player_shadow(gs);
 draw_city_map(gs);
 draw_outskirts(gs);
-draw_forest_trail(gs);
+//draw_forest_trail(gs);
 draw_parkour_wall(gs);
     draw_player(gs);
     draw_cube(gs,angle);
