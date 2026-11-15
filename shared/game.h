@@ -12,6 +12,7 @@ typedef struct {
     float move_speed;
     float jump_height;
     float vertical_velocity;
+    float surface_y;
     int grounded;
     int jump_was_down;
 } MueangPlayer;
@@ -24,20 +25,18 @@ typedef struct {
 } MueangGame;
 
 void MueangGame_Init(MueangGame *game);
-
 void MueangGame_Update(
     MueangGame *game,
-    float move_x,
-    float move_y,
-    float look_x,
-    float look_y,
-    int jump_pressed,
-    int sprint_pressed,
+    float move_x, float move_y,
+    float look_x, float look_y,
+    int jump_pressed, int sprint_pressed,
     float dt
 );
+
+/* Shared world-height query: renderer and gameplay use the same collision shape. */
+float MueangGame_GroundHeight(float x, float z);
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif
