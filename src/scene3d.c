@@ -619,6 +619,28 @@ draw_city_building(
                 gs,-1.0f,2.0f,15.0f,1.4f,4.2f,
                 facade,stone,roof,window
             );
+/* Paris Landmark - Grand Tower */
+{
+    u64 tower_roof = GS_SETREG_RGBAQ(
+        75, 48, 38, 0x80, 0
+    );
+
+    draw_city_building(
+        gs,
+        -1.2f, 2.4f,
+        24.0f, 2.2f,
+        6.0f,
+        facade, stone, roof, window
+    );
+
+    draw_landmark_roof(
+        gs,
+        -1.2f, 2.4f,
+        24.0f, 2.2f,
+        4.5f, 6.5f,
+        tower_roof
+    );
+}
             break;
 
         /* VENICE */
