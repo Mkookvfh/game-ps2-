@@ -669,6 +669,39 @@ draw_city_building(
                 draw_triangle(gs,a,b,c,water);
                 draw_triangle(gs,a,c,d,water);
             }
+/* Venice Landmark - Campanile Tower */
+{
+    u64 tower_body = GS_SETREG_RGBAQ(
+        155, 82, 55, 0x80, 0
+    );
+
+    u64 tower_side = GS_SETREG_RGBAQ(
+        105, 55, 42, 0x80, 0
+    );
+
+    u64 tower_roof = GS_SETREG_RGBAQ(
+        65, 105, 75, 0x80, 0
+    );
+
+    draw_city_building(
+        gs,
+        -6.0f, 2.4f,
+        25.0f, 2.2f,
+        7.0f,
+        tower_body,
+        tower_side,
+        roof,
+        window
+    );
+
+    draw_landmark_roof(
+        gs,
+        -6.0f, 2.4f,
+        25.0f, 2.2f,
+        5.5f, 8.0f,
+        tower_roof
+    );
+}
             break;
 
         /* ROME */
@@ -697,6 +730,57 @@ draw_city_building(
                     );
                 }
             }
+/* Rome Landmark - Ancient Roman Temple */
+{
+    u64 temple_stone = GS_SETREG_RGBAQ(
+        190, 174, 140, 0x80, 0
+    );
+
+    u64 temple_shadow = GS_SETREG_RGBAQ(
+        125, 108, 85, 0x80, 0
+    );
+
+    u64 temple_roof = GS_SETREG_RGBAQ(
+        145, 105, 65, 0x80, 0
+    );
+
+    /* Main temple */
+    draw_city_building(
+        gs,
+        -2.4f, 4.8f,
+        26.0f, 3.5f,
+        5.0f,
+        temple_stone,
+        temple_shadow,
+        temple_roof,
+        window
+    );
+
+    /* Front columns */
+    for(int i=0; i<6; i++) {
+        float cx = -2.0f + i * 0.8f;
+
+        draw_city_building(
+            gs,
+            cx, 0.30f,
+            25.65f, 0.55f,
+            4.5f,
+            temple_stone,
+            temple_shadow,
+            temple_stone,
+            window
+        );
+    }
+
+    /* Temple roof */
+    draw_landmark_roof(
+        gs,
+        -2.6f, 5.2f,
+        25.7f, 3.8f,
+        3.5f, 5.8f,
+        temple_roof
+    );
+}
             break;
 
         /* ENGLAND */
@@ -715,6 +799,64 @@ draw_city_building(
                 gs,-2.0f,4.0f,15.0f,2.0f,3.2f,
                 facade,stone,roof,window
             );
+/* England Landmark - Medieval Stone Keep */
+{
+    u64 keep_body = GS_SETREG_RGBAQ(
+        125, 118, 102, 0x80, 0
+    );
+
+    u64 keep_side = GS_SETREG_RGBAQ(
+        82, 78, 70, 0x80, 0
+    );
+
+    u64 keep_roof = GS_SETREG_RGBAQ(
+        75, 65, 55, 0x80, 0
+    );
+
+    /* Main castle tower */
+    draw_city_building(
+        gs,
+        5.0f, 3.4f,
+        26.0f, 3.0f,
+        6.5f,
+        keep_body,
+        keep_side,
+        keep_roof,
+        window
+    );
+
+    /* Castle roof */
+    draw_landmark_roof(
+        gs,
+        5.0f, 3.4f,
+        26.0f, 3.0f,
+        5.0f, 7.0f,
+        keep_roof
+    );
+
+    /* Side defensive towers */
+    draw_city_building(
+        gs,
+        4.0f, 0.8f,
+        25.5f, 2.0f,
+        5.0f,
+        keep_body,
+        keep_side,
+        keep_roof,
+        window
+    );
+
+    draw_city_building(
+        gs,
+        8.6f, 0.8f,
+        25.5f, 2.0f,
+        5.0f,
+        keep_body,
+        keep_side,
+        keep_roof,
+        window
+    );
+}
             break;
     }
 }
