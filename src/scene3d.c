@@ -57,6 +57,7 @@ static float climb_start_z = 0.0f;
 static float climb_start_x = 0.0f;
 static int is_hanging = 0;
 static int is_mantling = 0;
+static int hanging_on_side = 0;
 
 static int triangle_prev = 0;
 static int cross_prev = 0;
@@ -989,6 +990,7 @@ int drop_pressed=0;
     /* Drop from ledge */
 if(is_hanging && drop_pressed) {
     is_hanging = 0;
+    hanging_on_side = 0;
     player_y = 0.0f;
     is_jumping = 1;
     jump_velocity = -0.04f;
@@ -1007,25 +1009,58 @@ if(is_hanging && climb_pressed) {
     return;
 }
 
-/* Hanging: move along the wall */
+/* Hanging: L-shaped corner traversal */
 if(is_hanging) {
     player_y = -0.30f + sinf(walk_time * 2.0f) * 0.025f;
-    player_z = active_wall_front - 0.12f;
-    player_yaw = 0.0f;
 
-    if(move_x < -0.1f)
-        player_x -= 0.035f;
-    else if(move_x > 0.1f)
-        player_x += 0.035f;
+    if(!hanging_on_side) {
+        /* Main wall */
+        player_z = active_wall_front - 0.12f;
+        player_yaw = 0.0f;
 
-    if(player_x < WALL_LEFT + 0.35f)
-        player_x = WALL_LEFT + 0.35f;
-    if(player_x > WALL_RIGHT - 0.35f)
-        player_x = WALL_RIGHT - 0.35f;
+        if(move_x < -0.1f)
+            player_x -= 0.035f;
+        else if(move_x > 0.1f)
+            player_x += 0.035f;
+
+        if(player_x < WALL_LEFT + 0.35f)
+            player_x = WALL_LEFT + 0.35f;
+
+        /* Turn around right corner */
+        if(player_x >= WALL_RIGHT - 0.35f &&
+           move_x > 0.1f &&
+           active_wall == 0) {
+
+            hanging_on_side = 1;
+            player_x = 2.92f;
+            player_z = WALL_FRONT + 0.42f;
+        }
+    }
+    else {
+        /* Side wall */
+        player_x = 2.92f;
+        player_yaw = -PI * 0.5f;
+
+        if(move_z > 0.1f)
+            player_z += 0.035f;
+        else if(move_z < -0.1f)
+            player_z -= 0.035f;
+
+        if(player_z > WALL_FRONT + 1.45f)
+            player_z = WALL_FRONT + 1.45f;
+
+        /* Return around the corner */
+        if(player_z <= WALL_FRONT + 0.42f &&
+           move_z < -0.1f) {
+
+            hanging_on_side = 0;
+            player_x = WALL_RIGHT - 0.35f;
+            player_z = WALL_FRONT - 0.12f;
+        }
+    }
 
     body_bob = 0.0f;
     body_sway = 0.0f;
-
     return;
 }
 
