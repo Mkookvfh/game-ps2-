@@ -1783,6 +1783,61 @@ static void draw_player(GSGLOBAL *gs)
         coat,coat_side,coat_top
     );
 
+
+    /* =================================
+       CHARACTER MODEL V2 - EQUIPMENT
+       ================================= */
+
+    const u64 leather =
+        GS_SETREG_RGBAQ(85,48,28,0x80,0);
+
+    const u64 leather_dark =
+        GS_SETREG_RGBAQ(48,29,22,0x80,0);
+
+    const u64 metal =
+        GS_SETREG_RGBAQ(155,145,115,0x80,0);
+
+    /* Waist leather belt */
+    draw_player_part(
+        gs,0.0f,-0.53f,0.0f,
+        0.37f,0.075f,0.255f,
+        0.0f,0.0f,0.0f,
+        leather,leather_dark,leather
+    );
+
+    /* Belt buckle */
+    draw_player_part(
+        gs,0.0f,-0.53f,0.265f,
+        0.085f,0.065f,0.025f,
+        0.0f,0.0f,0.0f,
+        metal,leather_dark,metal
+    );
+
+    /* Diagonal chest strap */
+    draw_player_part(
+        gs,-0.12f,0.02f,0.245f,
+        0.055f,0.46f,0.025f,
+        -0.24f,0.0f,
+        leather,leather_dark,leather
+    );
+
+    /* Left shoulder armor */
+    draw_player_part(
+        gs,-0.43f,0.34f,0.0f,
+        0.19f,0.14f,0.17f,
+        0.0f,0.0f,0.0f,
+        coat_top,coat_side,metal
+    );
+
+    /* Right shoulder armor */
+    draw_player_part(
+        gs,0.43f,0.34f,0.0f,
+        0.19f,0.14f,0.17f,
+        0.0f,0.0f,0.0f,
+        coat_top,coat_side,metal
+    );
+
+
     /* Waist */
     draw_player_part(
         gs,0.0f,-0.58f,0.0f,
