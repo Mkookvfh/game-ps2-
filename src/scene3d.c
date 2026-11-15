@@ -1909,6 +1909,51 @@ v[i].z = player_z - tx*sn + local_z*cs;
    PLAYER MODEL V1
    ========================================= */
 
+/* Cinematic Shadows V1 - Player Ground Shadow */
+static void draw_player_shadow(GSGLOBAL *gs)
+{
+    float shadow_y = -1.465f;
+
+    float radius_x = 0.42f;
+    float radius_z = 0.24f;
+
+    int segments = 12;
+
+    u64 shadow_color =
+        GS_SETREG_RGBAQ(12, 10, 9, 65, 0);
+
+    Vec3 center = {
+        player_x,
+        shadow_y,
+        player_z
+    };
+
+    for (int i = 0; i < segments; i++) {
+        float a1 = (float)i * 6.2831853f / segments;
+        float a2 = (float)(i + 1) * 6.2831853f / segments;
+
+        Vec3 p1 = {
+            player_x + cosf(a1) * radius_x,
+            shadow_y,
+            player_z + sinf(a1) * radius_z
+        };
+
+        Vec3 p2 = {
+            player_x + cosf(a2) * radius_x,
+            shadow_y,
+            player_z + sinf(a2) * radius_z
+        };
+
+        draw_triangle(
+            gs,
+            center,
+            p1,
+            p2,
+            shadow_color
+        );
+    }
+}
+
 static void draw_player(GSGLOBAL *gs)
 {
     const u64 coat =
@@ -2751,7 +2796,8 @@ while(1) {
     draw_cinematic_sky(gs,era);
 
     draw_ground(gs);
-    draw_city_map(gs);
+draw_player_shadow(gs);
+draw_city_map(gs);
     draw_parkour_wall(gs);
     draw_player(gs);
     draw_cube(gs,angle);
