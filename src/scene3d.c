@@ -2228,8 +2228,8 @@ int main(void)
     dmaKit_chan_init(DMA_CHANNEL_GIF);
 
     gs->PSM=GS_PSM_CT24;
-    gs->PSMZ=GS_PSMZ_16;
-    gs->ZBuffering=GS_SETTING_OFF;
+gs->PSMZ=GS_PSMZ_32;
+gs->ZBuffering=GS_SETTING_ON;
 
     gsKit_init_screen(gs);
     gsKit_mode_switch(gs,GS_PERSISTENT);
