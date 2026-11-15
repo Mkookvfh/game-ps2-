@@ -263,6 +263,84 @@ static void draw_cube(Renderer3D *r,const float *vp,
     draw_mesh(r,cube,36,model,vp,red,green,blue);
 }
 
+
+static void mountain_triangle(
+    GLfloat *v, int *index,
+    const float *a,
+    const float *b,
+    const float *c)
+{
+    float ux = b[0] - a[0];
+    float uy = b[1] - a[1];
+    float uz = b[2] - a[2];
+
+    float vx = c[0] - a[0];
+    float vy = c[1] - a[1];
+    float vz = c[2] - a[2];
+
+    float nx = uy * vz - uz * vy;
+    float ny = uz * vx - ux * vz;
+    float nz = ux * vy - uy * vx;
+
+    float len = sqrtf(nx*nx + ny*ny + nz*nz);
+    if (len > 0.0001f) {
+        nx /= len;
+        ny /= len;
+        nz /= len;
+    }
+
+    const float *p[3] = {a, b, c};
+
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++)
+            v[(*index)++] = p[i][j];
+
+        v[(*index)++] = nx;
+        v[(*index)++] = ny;
+        v[(*index)++] = nz;
+    }
+}
+
+static void draw_mountain(
+    Renderer3D *r,
+    const float *vp,
+    float x, float y, float z,
+    float sx, float sy, float sz)
+{
+    GLfloat v[18 * 6];
+    int index = 0;
+
+    const float a[3] = {-1, 0, -1};
+    const float b[3] = { 1, 0, -1};
+    const float c[3] = { 1, 0,  1};
+    const float d[3] = {-1, 0,  1};
+    const float peak[3] = {0, 1.8f, 0};
+
+    mountain_triangle(v, &index, a, b, peak);
+    mountain_triangle(v, &index, b, c, peak);
+    mountain_triangle(v, &index, c, d, peak);
+    mountain_triangle(v, &index, d, a, peak);
+
+    mountain_triangle(v, &index, a, c, b);
+    mountain_triangle(v, &index, a, d, c);
+
+    float model[16];
+    identity(model);
+
+    model[0] = sx;
+    model[5] = sy;
+    model[10] = sz;
+
+    model[12] = x;
+    model[13] = y;
+    model[14] = z;
+
+    draw_mesh(
+        r, v, 18, model, vp,
+        0.38f, 0.37f, 0.34f
+    );
+}
+
 int Renderer3D_Init(Renderer3D *r)
 {
     GLuint vs=compile(GL_VERTEX_SHADER,VS);
