@@ -1600,6 +1600,124 @@ static void draw_outskirts(GSGLOBAL *gs)
     );
 }
 
+
+/* =========================================
+   OPEN WORLD - FOREST & MOUNTAIN TRAIL V2
+   ========================================= */
+
+static void draw_forest_trail(GSGLOBAL *gs)
+{
+    const u64 trail = GS_SETREG_RGBAQ(
+        105, 91, 67, 0x80, 0
+    );
+
+    const u64 rock = GS_SETREG_RGBAQ(
+        92, 88, 77, 0x80, 0
+    );
+
+    const u64 rock_dark = GS_SETREG_RGBAQ(
+        58, 61, 55, 0x80, 0
+    );
+
+    const u64 stone = GS_SETREG_RGBAQ(
+        125, 116, 96, 0x80, 0
+    );
+
+    const u64 stone_dark = GS_SETREG_RGBAQ(
+        75, 72, 62, 0x80, 0
+    );
+
+    /* Winding forest trail */
+    draw_ground_quad(
+        gs, -5.0f, -1.5f,
+        19.0f, 29.0f, trail
+    );
+
+    draw_ground_quad(
+        gs, -10.0f, -5.0f,
+        27.0f, 37.0f, trail
+    );
+
+    draw_ground_quad(
+        gs, -16.0f, -10.0f,
+        35.0f, 45.0f, trail
+    );
+
+    draw_ground_quad(
+        gs, -22.0f, -15.0f,
+        43.0f, 52.0f, trail
+    );
+
+    /* Forest trees */
+    draw_outskirts_tree(gs, -12.0f, 27.0f, 1.1f);
+    draw_outskirts_tree(gs, -17.0f, 30.0f, 1.3f);
+    draw_outskirts_tree(gs, -13.0f, 37.0f, 0.9f);
+    draw_outskirts_tree(gs, -20.0f, 42.0f, 1.2f);
+    draw_outskirts_tree(gs, -25.0f, 48.0f, 1.1f);
+
+    /* Rocky formations */
+    draw_city_building(
+        gs, -21.0f, 2.0f,
+        29.0f, 1.8f, 1.1f,
+        rock, rock_dark, rock, rock_dark
+    );
+
+    draw_city_building(
+        gs, -23.0f, 1.5f,
+        34.0f, 1.5f, 1.5f,
+        rock_dark, rock, rock, rock_dark
+    );
+
+    draw_city_building(
+        gs, -18.0f, 2.0f,
+        43.0f, 1.8f, 1.3f,
+        rock, rock_dark, rock, rock_dark
+    );
+
+    /* Ancient lookout platform */
+    draw_city_building(
+        gs,
+        -35.0f, 5.0f,
+        47.0f, 3.5f,
+        0.35f,
+        stone, stone_dark, stone, stone_dark
+    );
+
+    /* Ancient stone pillars */
+    draw_city_building(
+        gs, -34.5f, 0.55f,
+        47.2f, 0.55f, 3.0f,
+        stone, stone_dark, stone, stone_dark
+    );
+
+    draw_city_building(
+        gs, -31.0f, 0.55f,
+        47.2f, 0.55f, 3.0f,
+        stone, stone_dark, stone, stone_dark
+    );
+
+    draw_city_building(
+        gs, -34.5f, 0.55f,
+        50.0f, 0.55f, 3.0f,
+        stone, stone_dark, stone, stone_dark
+    );
+
+    draw_city_building(
+        gs, -31.0f, 0.55f,
+        50.0f, 0.55f, 3.0f,
+        stone, stone_dark, stone, stone_dark
+    );
+
+    /* Ancient ruin roof */
+    draw_landmark_roof(
+        gs,
+        -34.5f, 4.05f,
+        47.0f, 3.6f,
+        1.5f, 2.3f,
+        stone_dark
+    );
+}
+
 /* =========================================
    CITY MAP V3 - ROOFTOP HEIGHT
    ========================================= */
@@ -3014,7 +3132,8 @@ while(1) {
 draw_player_shadow(gs);
 draw_city_map(gs);
 draw_outskirts(gs);
-    draw_parkour_wall(gs);
+draw_forest_trail(gs);
+draw_parkour_wall(gs);
     draw_player(gs);
     draw_cube(gs,angle);
 
