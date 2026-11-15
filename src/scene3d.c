@@ -172,6 +172,7 @@ static void draw_rect(
 }
 
 /* Ground */
+/* Expanded City Ground V1 */
 static void draw_ground(GSGLOBAL *gs)
 {
     const WorldEra *era = world_current_era();
@@ -184,9 +185,9 @@ static void draw_ground(GSGLOBAL *gs)
     );
 
     const u64 grass2 = GS_SETREG_RGBAQ(
-        (era->ground_r + 18 > 255) ? 255 : era->ground_r + 18,
-        (era->ground_g + 12 > 255) ? 255 : era->ground_g + 12,
-        (era->ground_b + 8 > 255) ? 255 : era->ground_b + 8,
+        era->ground_r + 12,
+        era->ground_g + 10,
+        era->ground_b + 8,
         0x80, 0
     );
 
@@ -197,12 +198,15 @@ static void draw_ground(GSGLOBAL *gs)
         0x80, 0
     );
 
-    for(int z=9;z>=0;z--) {
-        for(int x=0;x<10;x++) {
-            float x0=-10.0f+x*2.0f;
-            float x1=x0+2.0f;
-            float z0=-2.0f+z*2.0f;
-            float z1=z0+2.0f;
+    /* 60 x 60 world units */
+    for(int z=11;z>=0;z--) {
+        for(int x=0;x<12;x++) {
+
+            float x0=-30.0f+x*5.0f;
+            float x1=x0+5.0f;
+
+            float z0=-10.0f+z*5.0f;
+            float z1=z0+5.0f;
 
             Vec3 a={x0,-1.5f,z0};
             Vec3 b={x1,-1.5f,z0};
@@ -217,32 +221,37 @@ static void draw_ground(GSGLOBAL *gs)
         }
     }
 
-    for(int x=0;x<=10;x++) {
-        float wx=-10.0f+x*2.0f;
+    /* Grid lines */
+    for(int x=0;x<=12;x++) {
 
-        Vec3 a={wx,-1.48f,-2.0f};
-        Vec3 b={wx,-1.48f,18.0f};
+        float wx=-30.0f+x*5.0f;
+
+        Vec3 a={wx,-1.48f,-10.0f};
+        Vec3 b={wx,-1.48f,50.0f};
 
         float ax,ay,bx,by;
 
         if(project_world(a,&ax,&ay) &&
            project_world(b,&bx,&by)) {
+
             gsKit_prim_line_3d(
                 gs,ax,ay,0,bx,by,0,grid
             );
         }
     }
 
-    for(int z=0;z<=10;z++) {
-        float wz=-2.0f+z*2.0f;
+    for(int z=0;z<=12;z++) {
 
-        Vec3 a={-10.0f,-1.48f,wz};
-        Vec3 b={10.0f,-1.48f,wz};
+        float wz=-10.0f+z*5.0f;
+
+        Vec3 a={-30.0f,-1.48f,wz};
+        Vec3 b={30.0f,-1.48f,wz};
 
         float ax,ay,bx,by;
 
         if(project_world(a,&ax,&ay) &&
            project_world(b,&bx,&by)) {
+
             gsKit_prim_line_3d(
                 gs,ax,ay,0,bx,by,0,grid
             );
@@ -1302,12 +1311,18 @@ if(is_jumping &&
     }
 }
 
-    /* World bounds */
-    if(player_x<-8.0f) player_x=-8.0f;
-    if(player_x>8.0f) player_x=8.0f;
+    /* Expanded City World Bounds */
+if(player_x < -28.0f)
+    player_x = -28.0f;
 
-    if(player_z<-1.0f) player_z=-1.0f;
-    if(player_z>16.0f) player_z=16.0f;
+if(player_x > 28.0f)
+    player_x = 28.0f;
+
+if(player_z < -8.0f)
+    player_z = -8.0f;
+
+if(player_z > 48.0f)
+    player_z = 48.0f;
 }
 
 /* Cube */
