@@ -1283,6 +1283,26 @@ static const CityCollisionBox city_collision_boxes[] = {
     {3, 8.6f,0.8f,25.5f,2.0f,5.0f}
 };
 
+/* Building Doorway Collision V2 */
+static int city_doorway_open(
+    float player_x,
+    float building_x,
+    float building_width
+) {
+    /* Small pillars do not have doors */
+    if(building_width < 1.5f)
+        return 0;
+
+    float door_center =
+        building_x + building_width * 0.5f;
+
+    /* Allow passage through the doorway corridor */
+    if(fabsf(player_x - door_center) < 0.23f)
+        return 1;
+
+    return 0;
+}
+
 static void resolve_city_collision(
     float old_x,
     float old_z,
@@ -1971,25 +1991,7 @@ if(climb_pressed &&
         {
             next_z=WALL2_BACK+0.40f;
         }
-/* Building Doorway Collision V2 */
-static int city_doorway_open(
-    float player_x,
-    float building_x,
-    float building_width
-) {
-    /* Small pillars do not have doors */
-    if(building_width < 1.5f)
-        return 0;
 
-    float door_center =
-        building_x + building_width * 0.5f;
-
-    /* Allow passage through the doorway corridor */
-    if(fabsf(player_x - door_center) < 0.23f)
-        return 1;
-
-    return 0;
-}
 
         /* City Building Collision V1 */
 resolve_city_collision(
