@@ -98,11 +98,13 @@ static const int edges[12][2] = {
     {0,4},{1,5},{2,6},{3,7}
 };
 
-/* Projection */
+
+/* Projection with reversed Z depth */
 static int project_world(
     Vec3 p,
     float *sx,
-    float *sy
+    float *sy,
+    int *sz
 ) {
     float dx = p.x - player_x;
     float dy = p.y - CAMERA_HEIGHT;
@@ -126,10 +128,24 @@ static int project_world(
     *sx = CENTER_X + camera_x * FOCAL_LENGTH / cz;
     *sy = CENTER_Y - cy * FOCAL_LENGTH / cz;
 
+    if (sz != NULL) {
+        int depth = (int)(16777215.0f / cz);
+
+        if (depth > 0xFFFFFF)
+            depth = 0xFFFFFF;
+
+        if (depth < 1)
+            depth = 1;
+
+        *sz = depth;
+    }
+
     return 1;
 }
 
-/* Triangle */
+
+
+/* Triangle with hardware depth */
 static void draw_triangle(
     GSGLOBAL *gs,
     Vec3 a,
@@ -138,19 +154,21 @@ static void draw_triangle(
     u64 color
 ) {
     float x1,y1,x2,y2,x3,y3;
+    int z1,z2,z3;
 
-    if (!project_world(a,&x1,&y1)) return;
-    if (!project_world(b,&x2,&y2)) return;
-    if (!project_world(c,&x3,&y3)) return;
+    if (!project_world(a,&x1,&y1,&z1)) return;
+    if (!project_world(b,&x2,&y2,&z2)) return;
+    if (!project_world(c,&x3,&y3,&z3)) return;
 
     gsKit_prim_triangle_3d(
         gs,
-        x1,y1,0,
-        x2,y2,0,
-        x3,y3,0,
+        x1,y1,z1,
+        x2,y2,z2,
+        x3,y3,z3,
         color
     );
 }
+
 
 /* Rectangle */
 static void draw_rect(
@@ -229,15 +247,18 @@ static void draw_ground(GSGLOBAL *gs)
         Vec3 a={wx,-1.48f,-10.0f};
         Vec3 b={wx,-1.48f,50.0f};
 
-        float ax,ay,bx,by;
+        
+float ax,ay,bx,by;
+int az,bz;
 
-        if(project_world(a,&ax,&ay) &&
-           project_world(b,&bx,&by)) {
+if(project_world(a,&ax,&ay,&az) &&
+   project_world(b,&bx,&by,&bz)) {
 
-            gsKit_prim_line_3d(
-                gs,ax,ay,0,bx,by,0,grid
-            );
-        }
+    gsKit_prim_line_3d(
+        gs,ax,ay,az,bx,by,bz,grid
+    );
+}
+
     }
 
     for(int z=0;z<=12;z++) {
@@ -247,15 +268,18 @@ static void draw_ground(GSGLOBAL *gs)
         Vec3 a={-30.0f,-1.48f,wz};
         Vec3 b={30.0f,-1.48f,wz};
 
-        float ax,ay,bx,by;
+        
+float ax,ay,bx,by;
+int az,bz;
 
-        if(project_world(a,&ax,&ay) &&
-           project_world(b,&bx,&by)) {
+if(project_world(a,&ax,&ay,&az) &&
+   project_world(b,&bx,&by,&bz)) {
 
-            gsKit_prim_line_3d(
-                gs,ax,ay,0,bx,by,0,grid
-            );
-        }
+    gsKit_prim_line_3d(
+        gs,ax,ay,az,bx,by,bz,grid
+    );
+}
+
     }
 }
 
@@ -2119,7 +2143,8 @@ static void draw_cube(
     float angle
 ) {
     float sx[8],sy[8];
-    int visible[8];
+int sz[8];
+int visible[8];
 
     const u64 color =
         GS_SETREG_RGBAQ(80,220,255,0x80,0);
@@ -2141,7 +2166,9 @@ static void draw_cube(
             player_z+3.0f+rz
         };
 
-        visible[i]=project_world(p,&sx[i],&sy[i]);
+        visible[i]=project_world(
+    p,&sx[i],&sy[i],&sz[i]
+);
     }
 
     for(int i=0;i<12;i++) {
@@ -2150,11 +2177,11 @@ static void draw_cube(
 
         if(visible[a] && visible[b]) {
             gsKit_prim_line_3d(
-                gs,
-                sx[a],sy[a],0,
-                sx[b],sy[b],0,
-                color
-            );
+    gs,
+    sx[a],sy[a],sz[a],
+    sx[b],sy[b],sz[b],
+    color
+);
         }
     }
 }
