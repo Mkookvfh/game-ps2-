@@ -324,6 +324,94 @@ static void draw_city_building(
 
 
 /* =========================================
+   CITY DISTRICTS V1 - 32 EXTRA BUILDINGS
+   ========================================= */
+
+typedef struct {
+    int city;
+    float x;
+    float width;
+    float front;
+    float depth;
+    float height;
+} CityBuildingData;
+
+static const CityBuildingData city_buildings[] = {
+    /* PARIS - 8 buildings */
+    {0,-15.0f,3.5f,17.0f,2.0f,3.5f},
+    {0,-9.5f,3.0f,20.0f,2.0f,4.0f},
+    {0,5.0f,3.2f,18.0f,2.0f,3.8f},
+    {0,11.0f,3.5f,21.0f,2.0f,4.5f},
+    {0,-16.0f,3.8f,29.0f,2.5f,4.2f},
+    {0,-9.5f,3.0f,34.0f,2.0f,3.2f},
+    {0,5.0f,3.5f,30.0f,2.0f,4.0f},
+    {0,11.0f,4.0f,36.0f,2.5f,5.0f},
+
+    /* VENICE - 8 buildings */
+    {1,-15.0f,3.5f,17.0f,2.5f,3.8f},
+    {1,-9.0f,3.0f,22.0f,2.0f,4.5f},
+    {1,5.0f,3.5f,18.0f,2.5f,4.0f},
+    {1,11.0f,3.5f,23.0f,2.0f,3.5f},
+    {1,-16.0f,3.8f,30.0f,2.5f,4.5f},
+    {1,-9.5f,3.0f,35.0f,2.0f,3.5f},
+    {1,5.0f,3.5f,31.0f,2.5f,4.2f},
+    {1,11.0f,4.0f,37.0f,2.5f,5.0f},
+
+    /* ROME - 8 buildings */
+    {2,-15.0f,3.5f,17.0f,2.5f,4.0f},
+    {2,-9.0f,3.0f,22.0f,2.0f,3.5f},
+    {2,5.0f,3.5f,18.0f,2.5f,4.5f},
+    {2,11.0f,3.5f,23.0f,2.0f,4.0f},
+    {2,-16.0f,4.0f,30.0f,2.5f,4.5f},
+    {2,-9.5f,3.0f,35.0f,2.0f,3.8f},
+    {2,5.0f,3.5f,31.0f,2.5f,4.2f},
+    {2,11.0f,4.0f,37.0f,2.5f,5.2f},
+
+    /* ENGLAND - 8 buildings */
+    {3,-15.0f,3.5f,17.0f,2.0f,3.0f},
+    {3,-9.0f,3.0f,22.0f,2.0f,3.5f},
+    {3,5.0f,3.5f,18.0f,2.0f,3.2f},
+    {3,11.0f,3.5f,23.0f,2.0f,3.8f},
+    {3,-16.0f,4.0f,30.0f,2.5f,3.5f},
+    {3,-9.5f,3.0f,35.0f,2.0f,3.0f},
+    {3,5.0f,3.5f,31.0f,2.5f,3.8f},
+    {3,11.0f,4.0f,37.0f,2.5f,4.0f}
+};
+
+static void draw_city_districts(
+    GSGLOBAL *gs,
+    int city,
+    u64 facade,
+    u64 stone,
+    u64 roof,
+    u64 window
+) {
+    int count = sizeof(city_buildings) /
+                sizeof(city_buildings[0]);
+
+    for(int i=0; i<count; i++) {
+        const CityBuildingData *b = &city_buildings[i];
+
+        if(b->city != city)
+            continue;
+
+        draw_city_building(
+            gs,
+            b->x,
+            b->width,
+            b->front,
+            b->depth,
+            b->height,
+            facade,
+            stone,
+            roof,
+            window
+        );
+    }
+}
+
+
+/* =========================================
    CITY MAP V2 - ROADS AND ALLEYS
    ========================================= */
 
