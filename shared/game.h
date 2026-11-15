@@ -17,6 +17,11 @@ typedef struct {
     float roll_timer;
     float slide_timer;
     float leap_timer;
+    float wallrun_timer;
+    float grapple_timer;
+    float zipline_timer;
+    float pole_vault_timer;
+    float traversal_cooldown;
     int grounded;
     int jump_was_down;
     int action_was_down;
@@ -24,6 +29,8 @@ typedef struct {
     int leap_of_faith;
     int on_beam;
     int safe_landing;
+    int traversal_mode; /* 0=normal, 1=wall-run, 2=grapple swing, 3=zipline, 4=pole-vault */
+    int wall_side;
 } MueangPlayer;
 
 typedef struct {
