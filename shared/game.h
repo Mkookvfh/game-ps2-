@@ -1,4 +1,3 @@
-
 #ifndef MUEANG_SHARED_GAME_H
 #define MUEANG_SHARED_GAME_H
 
@@ -11,10 +10,17 @@ typedef struct {
     float z;
     float yaw;
     float move_speed;
+
+    float jump_height;
+    float vertical_velocity;
+
+    int grounded;
+    int jump_was_down;
 } MueangPlayer;
 
 typedef struct {
     MueangPlayer player;
+
     float camera_yaw;
     float camera_pitch;
     float camera_distance;
@@ -28,6 +34,8 @@ void MueangGame_Update(
     float move_y,
     float look_x,
     float look_y,
+    int jump_pressed,
+    int sprint_pressed,
     float dt
 );
 
