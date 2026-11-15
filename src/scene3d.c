@@ -184,6 +184,47 @@ static u64 apply_distance_fog(
     return GS_SETREG_RGBAQ(r, g, b, a, 0);
 }
 
+/* Cinematic Sky V1 - Vertical Gradient */
+static void draw_cinematic_sky(
+    GSGLOBAL *gs,
+    const WorldEra *era
+) {
+    int bands = 12;
+
+    int top_r = era->sky_r * 55 / 100;
+    int top_g = era->sky_g * 55 / 100;
+    int top_b = era->sky_b * 65 / 100;
+
+    int horizon_r = era->sky_r + 22;
+    int horizon_g = era->sky_g + 18;
+    int horizon_b = era->sky_b + 10;
+
+    if (horizon_r > 255) horizon_r = 255;
+    if (horizon_g > 255) horizon_g = 255;
+    if (horizon_b > 255) horizon_b = 255;
+
+    for (int i = 0; i < bands; i++) {
+        float t = (float)i / (float)(bands - 1);
+
+        int r = top_r + (int)((horizon_r - top_r) * t);
+        int g = top_g + (int)((horizon_g - top_g) * t);
+        int b = top_b + (int)((horizon_b - top_b) * t);
+
+        int y1 = i * 448 / bands;
+        int y2 = (i + 1) * 448 / bands + 1;
+
+        u64 color = GS_SETREG_RGBAQ(r, g, b, 0x80, 0);
+
+        gsKit_prim_sprite(
+            gs,
+            0.0f, (float)y1,
+            640.0f, (float)y2,
+            1,
+            color
+        );
+    }
+}
+
 /* Triangle with hardware depth */
 static void draw_triangle(
     GSGLOBAL *gs,
@@ -2649,6 +2690,9 @@ while(1) {
     );
 
     gsKit_clear(gs,sky);
+
+    /* Cinematic Sky */
+    draw_cinematic_sky(gs,era);
 
     draw_ground(gs);
     draw_city_map(gs);
