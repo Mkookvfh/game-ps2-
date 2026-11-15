@@ -2213,15 +2213,27 @@ if(climb_pressed &&
     float speed=running?0.085f:0.045f;
 
     if(move_x!=0.0f || move_z!=0.0f) {
-        float length=sqrtf(
-            move_x*move_x+
-            move_z*move_z
-        );
 
-        if(length>0.0f) {
-            move_x/=length;
-            move_z/=length;
-        }
+    /* Camera-relative movement */
+    float input_x = move_x;
+    float input_z = move_z;
+
+    float cs = cosf(camera_yaw);
+    float sn = sinf(camera_yaw);
+
+    move_x = input_x * cs + input_z * sn;
+    move_z = -input_x * sn + input_z * cs;
+
+    /* Normalize movement */
+    float length=sqrtf(
+        move_x*move_x+
+        move_z*move_z
+    );
+
+    if(length>0.0f) {
+        move_x/=length;
+        move_z/=length;
+    }
 
         float next_x=player_x+move_x*speed;
         float next_z=player_z+move_z*speed;
