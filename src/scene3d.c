@@ -320,6 +320,24 @@ static void draw_city_building(
             );
         }
     }
+    /* Building Entrance Door V2 */
+    u64 door_color = GS_SETREG_RGBAQ(
+        45, 30, 22, 0x80, 0
+    );
+
+    float door_width = 0.72f;
+    float door_height = 0.78f;
+    float door_center = x + width * 0.5f;
+
+    draw_rect(
+        gs,
+        door_center - door_width * 0.5f,
+        bottom,
+        door_center + door_width * 0.5f,
+        bottom + door_height,
+        front - 0.025f,
+        door_color
+    );
 }
 
 
@@ -1941,13 +1959,32 @@ if(climb_pressed &&
         {
             next_z=WALL2_BACK+0.40f;
         }
+/* Building Doorway Collision V2 */
+static int city_doorway_open(
+    float player_x,
+    float building_x,
+    float building_width
+) {
+    /* Small pillars do not have doors */
+    if(building_width < 1.5f)
+        return 0;
+
+    float door_center =
+        building_x + building_width * 0.5f;
+
+    /* Allow passage through the doorway corridor */
+    if(fabsf(player_x - door_center) < 0.23f)
+        return 1;
+
+    return 0;
+}
 
         /* City Building Collision V1 */
 resolve_city_collision(
     player_x,
     player_z,
     &next_x,
-    &next_z
+    &next_z 
 );
 
 player_x=next_x;
