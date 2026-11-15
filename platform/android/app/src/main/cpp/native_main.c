@@ -475,7 +475,10 @@ static int init_egl(struct android_app *app, GameState *s)
         destroy_egl(s);
         return 0;
     }
-
+    if (!Renderer3D_Init(&s->renderer)) {
+    destroy_egl(s);
+    return 0;
+}
     s->ready = 1;
     return 1;
 }
