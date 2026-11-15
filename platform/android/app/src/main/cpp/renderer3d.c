@@ -418,6 +418,23 @@ void Renderer3D_Draw(Renderer3D *r,
     draw_mesh(r,terrain,TERRAIN_VERTICES,
         identityModel,vp,0.24f,0.40f,0.20f);
 
+/* Distant low-poly mountains */
+draw_mountain(r,vp,
+    px-24.0f,height_at(px-24.0f,pz-28.0f),pz-28.0f,
+    20.0f,14.0f,18.0f);
+
+draw_mountain(r,vp,
+    px+25.0f,height_at(px+25.0f,pz-32.0f),pz-32.0f,
+    22.0f,18.0f,20.0f);
+
+draw_mountain(r,vp,
+    px-30.0f,height_at(px-30.0f,pz+22.0f),pz+22.0f,
+    24.0f,16.0f,20.0f);
+
+draw_mountain(r,vp,
+    px+32.0f,height_at(px+32.0f,pz+25.0f),pz+25.0f,
+    26.0f,20.0f,22.0f);
+
     /* Ancient village house */
     float hx=px+5.0f;
     float hz=pz-5.0f;
