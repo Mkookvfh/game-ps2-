@@ -146,6 +146,58 @@ static int project_world(
     return 1;
 }
 
+/* Cinematic Lighting V1 - Golden Sunlight */
+static u64 apply_sun_lighting(
+    u64 color,
+    Vec3 a,
+    Vec3 b,
+    Vec3 c
+) {
+    float ux = b.x - a.x;
+    float uy = b.y - a.y;
+    float uz = b.z - a.z;
+
+    float vx = c.x - a.x;
+    float vy = c.y - a.y;
+    float vz = c.z - a.z;
+
+    float nx = uy * vz - uz * vy;
+    float ny = uz * vx - ux * vz;
+    float nz = ux * vy - uy * vx;
+
+    float len = sqrtf(nx*nx + ny*ny + nz*nz);
+
+    if (len < 0.0001f)
+        return color;
+
+    nx /= len;
+    ny /= len;
+    nz /= len;
+
+    /* Warm sunlight from upper-left */
+    float light = fabsf(
+        nx * -0.45f +
+        ny *  0.82f +
+        nz * -0.35f
+    );
+
+    float intensity = 0.72f + light * 0.28f;
+
+    int r = (int)(color & 0xFF);
+    int g = (int)((color >> 8) & 0xFF);
+    int bl = (int)((color >> 16) & 0xFF);
+    int alpha = (int)((color >> 24) & 0xFF);
+
+    r = (int)(r * intensity * 1.05f);
+    g = (int)(g * intensity * 1.02f);
+    bl = (int)(bl * intensity * 0.94f);
+
+    if (r > 255) r = 255;
+    if (g > 255) g = 255;
+    if (bl > 255) bl = 255;
+
+    return GS_SETREG_RGBAQ(r,g,bl,alpha,0);
+}
 
 /* Cinematic Atmosphere V1 - Distance Fog */
 static u64 apply_distance_fog(
@@ -240,6 +292,10 @@ static void draw_triangle(
     if (!project_world(b,&x2,&y2,&z2)) return;
     if (!project_world(c,&x3,&y3,&z3)) return;
 
+/* Golden sunlight */
+color = apply_sun_lighting(color,a,b,c);
+
+/* Distance fog */
 color = apply_distance_fog(color,z1,z2,z3);
 
     gsKit_prim_triangle_3d(
