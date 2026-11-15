@@ -147,6 +147,42 @@ static int project_world(
 }
 
 
+/* Cinematic Atmosphere V1 - Distance Fog */
+static u64 apply_distance_fog(
+    u64 color,
+    int z1,
+    int z2,
+    int z3
+) {
+    const WorldEra *era = world_current_era();
+
+    float avg_z = (
+        (float)z1 +
+        (float)z2 +
+        (float)z3
+    ) / 3.0f;
+
+    if (avg_z < 1.0f)
+        return color;
+
+    float distance = 16777215.0f / avg_z;
+
+    float fog = (distance - 18.0f) / 30.0f;
+
+    if (fog < 0.0f) fog = 0.0f;
+    if (fog > 1.0f) fog = 1.0f;
+
+    int r = (int)(color & 0xFF);
+    int g = (int)((color >> 8) & 0xFF);
+    int b = (int)((color >> 16) & 0xFF);
+    int a = (int)((color >> 24) & 0xFF);
+
+    r += (int)((era->sky_r - r) * fog);
+    g += (int)((era->sky_g - g) * fog);
+    b += (int)((era->sky_b - b) * fog);
+
+    return GS_SETREG_RGBAQ(r, g, b, a, 0);
+}
 
 /* Triangle with hardware depth */
 static void draw_triangle(
@@ -162,6 +198,8 @@ static void draw_triangle(
     if (!project_world(a,&x1,&y1,&z1)) return;
     if (!project_world(b,&x2,&y2,&z2)) return;
     if (!project_world(c,&x3,&y3,&z3)) return;
+
+color = apply_distance_fog(color,z1,z2,z3);
 
     gsKit_prim_triangle_3d(
         gs,
