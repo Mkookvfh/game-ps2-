@@ -2711,18 +2711,18 @@ if(is_jumping &&
     }
 }
 
-    /* Expanded City World Bounds */
-if(player_x < -28.0f)
-    player_x = -28.0f;
+    /* Open World Bounds V1 */
+if(player_x < -43.0f)
+    player_x = -43.0f;
 
-if(player_x > 28.0f)
-    player_x = 28.0f;
+if(player_x > 43.0f)
+    player_x = 43.0f;
 
-if(player_z < -8.0f)
-    player_z = -8.0f;
+if(player_z < -23.0f)
+    player_z = -23.0f;
 
-if(player_z > 48.0f)
-    player_z = 48.0f;
+if(player_z > 63.0f)
+    player_z = 63.0f;
 }
 
 /* Cube */
