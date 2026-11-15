@@ -1988,6 +1988,34 @@ int drop_pressed=0;
             int lx=(int)pad.ljoy_h;
             int ly=(int)pad.ljoy_v;
 
+            /* Right Analog - Camera */
+int rx = (int)pad.rjoy_h;
+int ry = (int)pad.rjoy_v;
+
+if(rx < 118) {
+    camera_yaw -= 0.035f;
+    camera_manual = 1;
+}
+else if(rx > 138) {
+    camera_yaw += 0.035f;
+    camera_manual = 1;
+}
+
+if(ry < 118) {
+    camera_pitch -= 0.015f;
+    camera_manual = 1;
+}
+else if(ry > 138) {
+    camera_pitch += 0.015f;
+    camera_manual = 1;
+}
+
+if(camera_pitch < -0.35f)
+    camera_pitch = -0.35f;
+
+if(camera_pitch > 0.65f)
+    camera_pitch = 0.65f;
+
             if(lx>0 && lx<93)
                 move_x=-1.0f;
             else if(lx>163)
@@ -2248,12 +2276,14 @@ player_z=next_z;
 
         player_yaw=atan2f(move_x,move_z);
 
-        float yaw_diff=atan2f(
-            sinf(player_yaw-camera_yaw),
-            cosf(player_yaw-camera_yaw)
-        );
+        if(!camera_manual) {
+    float yaw_diff=atan2f(
+        sinf(player_yaw-camera_yaw),
+        cosf(player_yaw-camera_yaw)
+    );
 
-        camera_yaw+=yaw_diff*0.12f;
+    camera_yaw+=yaw_diff*0.12f;
+}
 
         is_running=running;
 
