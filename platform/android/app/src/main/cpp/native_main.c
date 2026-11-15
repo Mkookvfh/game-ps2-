@@ -7,7 +7,7 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
-
+#include "renderer3d.h"
 #include "game.h"
 
 #define LOG_TAG "MUEANG_ISARA"
@@ -28,6 +28,7 @@ typedef struct {
 
     int ready;
     MueangGame game;
+    Renderer3D renderer;
 
     int left_pointer;
     int right_pointer;
