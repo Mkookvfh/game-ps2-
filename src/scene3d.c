@@ -1912,7 +1912,7 @@ v[i].z = player_z - tx*sn + local_z*cs;
 /* Cinematic Shadows V1 - Player Ground Shadow */
 static void draw_player_shadow(GSGLOBAL *gs)
 {
-    float shadow_y = -1.465f;
+    float shadow_y = -1.51f;
 
     float radius_x = 0.42f;
     float radius_z = 0.24f;
@@ -1920,7 +1920,7 @@ static void draw_player_shadow(GSGLOBAL *gs)
     int segments = 12;
 
     u64 shadow_color =
-        GS_SETREG_RGBAQ(12, 10, 9, 65, 0);
+        GS_SETREG_RGBAQ(25, 22, 20, 0x80, 0);
 
     Vec3 center = {
         player_x,
