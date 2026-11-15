@@ -585,6 +585,45 @@ static const CityBuildingData city_buildings[] = {
     {3,11.0f,4.0f,37.0f,2.5f,4.0f}
 };
 
+/* Graphics Upgrade V2 - Building Shadows */
+static void draw_building_shadow(
+    GSGLOBAL *gs,
+    float x,
+    float width,
+    float front,
+    float depth
+) {
+    float y = -1.44f;
+
+    float extend_x = 1.2f;
+    float extend_z = 1.8f;
+
+    u64 shadow = GS_SETREG_RGBAQ(
+        22, 20, 18, 0x80, 0
+    );
+
+    Vec3 a = {
+        x + 0.25f, y, front + 0.25f
+    };
+
+    Vec3 b = {
+        x + width + extend_x, y, front + 0.25f
+    };
+
+    Vec3 c = {
+        x + width + extend_x, y,
+        front + depth + extend_z
+    };
+
+    Vec3 d = {
+        x + 0.25f, y,
+        front + depth + extend_z
+    };
+
+    draw_triangle(gs, a, b, c, shadow);
+    draw_triangle(gs, a, c, d, shadow);
+}
+
 static void draw_city_districts(
     GSGLOBAL *gs,
     int city,
@@ -601,6 +640,14 @@ static void draw_city_districts(
 
         if(b->city != city)
             continue;
+
+draw_building_shadow(
+    gs,
+    b->x,
+    b->width,
+    b->front,
+    b->depth
+);
 
         draw_city_building(
             gs,
