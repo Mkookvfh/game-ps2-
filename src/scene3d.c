@@ -1753,8 +1753,9 @@ if(is_hanging || is_climbing)
 
 draw_player_part(
     gs,
-    0.0f,-0.22f,0.49f,
-    0.52f,0.75f,0.055f,
+    /* Main cloak */
+0.0f,-0.22f,-0.49f,
+0.52f,0.75f,0.055f,
     cloak_swing,
     0.0f,0.45f,
     cloak,cloak_side,cloak_top
@@ -1764,8 +1765,9 @@ draw_player_part(
 
 draw_player_part(
     gs,
-    0.0f,-0.91f,0.52f,
-    0.52f,0.06f,0.065f,
+    /* Cloak lower edge */
+0.0f,-0.91f,-0.52f,
+0.52f,0.06f,0.065f,
     cloak_swing,
     0.0f,0.45f,
     cloak_edge,cloak_side,cloak_edge
