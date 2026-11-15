@@ -1,3 +1,4 @@
+
 #include "game.h"
 #include <math.h>
 #include <string.h>
@@ -23,6 +24,9 @@
 #define WATER_Z 51.0f
 #define WATER_RADIUS 3.5f
 
+#define NPC_DETECTION_RANGE 10.0f
+#define NPC_TAKEDOWN_RANGE 2.25f
+
 static float clampf(float v, float lo, float hi)
 {
     if (v < lo) return lo;
@@ -45,13 +49,15 @@ static float stair_rise(void)
 
 static int in_haystack(float x, float z)
 {
-    float dx = x - HAY_X, dz = z - HAY_Z;
+    float dx = x - HAY_X;
+    float dz = z - HAY_Z;
     return dx * dx + dz * dz <= HAY_RADIUS * HAY_RADIUS;
 }
 
 static int in_water(float x, float z)
 {
-    float dx = x - WATER_X, dz = z - WATER_Z;
+    float dx = x - WATER_X;
+    float dz = z - WATER_Z;
     return dx * dx + dz * dz <= WATER_RADIUS * WATER_RADIUS;
 }
 
@@ -61,35 +67,234 @@ static int near_tree(float x, float z, float radius)
         {-12,-8}, {-5,-11}, {2,-13}, {11,-9}, {15,1},
         {-15,8}, {-8,14}, {9,13}, {16,17}
     };
+
     for (int i = 0; i < 9; ++i) {
-        float dx = x - trees[i][0], dz = z - trees[i][1];
-        if (dx * dx + dz * dz <= radius * radius) return 1;
+        float dx = x - trees[i][0];
+        float dz = z - trees[i][1];
+
+        if (dx * dx + dz * dz <= radius * radius)
+            return 1;
     }
+
     return 0;
 }
 
-/* The ancient house is the first wall-run training surface. */
 static int near_house_wall(float x, float z)
 {
-    return x >= 2.9f && x <= 7.1f && z >= -7.2f && z <= -2.8f;
+    return x >= 2.9f && x <= 7.1f &&
+           z >= -7.2f && z <= -2.8f;
 }
 
 static int near_grapple_anchor(float x, float z)
 {
     return near_tree(x, z, 2.0f) ||
-           (x >= 3.0f && x <= 7.0f && z >= -7.0f && z <= -3.0f);
+           (x >= 3.0f && x <= 7.0f &&
+            z >= -7.0f && z <= -3.0f);
 }
 
-static int near_island_edge_in_direction(float x, float z, float dx, float dz)
+static int near_island_edge_in_direction(
+    float x, float z, float dx, float dz)
 {
     if (x < ISLAND_MIN_X || x > ISLAND_MAX_X ||
-        z < ISLAND_MIN_Z || z > ISLAND_MAX_Z) return 0;
+        z < ISLAND_MIN_Z || z > ISLAND_MAX_Z)
+        return 0;
+
     if (dx > 0.25f && x > ISLAND_MAX_X - 2.3f) return 1;
     if (dx < -0.25f && x < ISLAND_MIN_X + 2.3f) return 1;
     if (dz > 0.25f && z > ISLAND_MAX_Z - 2.3f) return 1;
     if (dz < -0.25f && z < ISLAND_MIN_Z + 2.3f) return 1;
+
     return 0;
 }
+
+/* ================= NPC SYSTEM ================= */
+
+static float distance_xz(
+    float x1, float z1, float x2, float z2)
+{
+    float dx = x1 - x2;
+    float dz = z1 - z2;
+    return sqrtf(dx * dx + dz * dz);
+}
+
+static void init_npcs(MueangGame *game)
+{
+    static const float positions[MUEANG_NPC_COUNT][2] = {
+        {  7.0f,  2.0f },
+        { -8.0f,  4.0f },
+        { 12.0f, -8.0f },
+        {-13.0f, -4.0f },
+        {  3.0f,  8.0f },
+        { -4.0f,  6.0f },
+        { 10.0f,  5.0f },
+        {-10.0f,  9.0f }
+    };
+
+    for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
+        MueangNPC *n = &game->npcs[i];
+
+        memset(n, 0, sizeof(*n));
+
+        n->x = positions[i][0];
+        n->z = positions[i][1];
+
+        n->patrol_origin_x = n->x;
+        n->patrol_origin_z = n->z;
+
+        n->type = (i < 4) ? 0 : 1;
+        n->alive = 1;
+        n->state = 0;
+    }
+}
+
+static MueangNPC *find_nearest_target(
+    MueangGame *game, float range)
+{
+    MueangNPC *best = NULL;
+    float best_distance = range;
+
+    for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
+        MueangNPC *n = &game->npcs[i];
+
+        if (!n->alive)
+            continue;
+
+        float d = distance_xz(
+            game->player.x, game->player.z,
+            n->x, n->z
+        );
+
+        if (d < best_distance) {
+            best_distance = d;
+            best = n;
+        }
+    }
+
+    return best;
+}
+
+static void defeat_npc(MueangGame *game, MueangNPC *npc)
+{
+    if (!npc || !npc->alive)
+        return;
+
+    npc->alive = 0;
+    npc->state = 3;
+    npc->awareness = 0.0f;
+
+    if (npc->type == 0)
+        game->enemies_defeated++;
+}
+
+static void update_npc_ai(MueangGame *game, float dt)
+{
+    MueangPlayer *p = &game->player;
+    int guard_alerted = 0;
+
+    for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
+        MueangNPC *n = &game->npcs[i];
+
+        if (!n->alive)
+            continue;
+
+        if (n->type == 1) {
+            n->patrol_timer += dt;
+
+            n->x = n->patrol_origin_x +
+                sinf(n->patrol_timer * 0.45f + (float)i) * 1.25f;
+
+            n->z = n->patrol_origin_z +
+                cosf(n->patrol_timer * 0.35f + (float)i) * 0.85f;
+
+            continue;
+        }
+
+        float dx = p->x - n->x;
+        float dz = p->z - n->z;
+        float d = sqrtf(dx * dx + dz * dz);
+
+        if (d < NPC_DETECTION_RANGE) {
+            float detection = 1.0f - d / NPC_DETECTION_RANGE;
+
+            if (p->stealth_enabled)
+                detection *= 0.30f;
+
+            if (p->crouching)
+                detection *= 0.45f;
+
+            if (game->crowd_blending)
+                detection *= 0.25f;
+
+            if (p->attacking || p->air_assassination)
+                detection = 1.0f;
+
+            n->awareness += detection * dt * 0.85f;
+        } else {
+            n->awareness -= dt * 0.22f;
+        }
+
+        n->awareness = clampf(n->awareness, 0.0f, 1.0f);
+
+        if (n->awareness > 0.25f && n->state < 1)
+            n->state = 1;
+
+        if (n->awareness >= 0.72f)
+            n->state = 2;
+
+        if (n->state == 2) {
+            guard_alerted = 1;
+            n->yaw = atan2f(dx, dz);
+
+            if (d > 1.8f) {
+                n->x += (dx / (d + 0.001f)) * 2.2f * dt;
+                n->z += (dz / (d + 0.001f)) * 2.2f * dt;
+            }
+
+            if (d < 2.0f) {
+                n->attack_timer += dt;
+
+                if (n->attack_timer > 1.2f) {
+                    n->attack_timer = 0.0f;
+                    p->detected = 1;
+                }
+            } else {
+                n->attack_timer = 0.0f;
+            }
+        } else {
+            n->patrol_timer += dt;
+
+            n->x = n->patrol_origin_x +
+                sinf(n->patrol_timer * 0.35f + (float)i) * 1.8f;
+
+            n->z = n->patrol_origin_z +
+                cosf(n->patrol_timer * 0.28f + (float)i) * 1.2f;
+        }
+
+        if (n->state == 1 && n->awareness < 0.05f)
+            n->state = 0;
+    }
+
+    game->alert_level = guard_alerted ? 1.0f : 0.0f;
+
+    game->crowd_blending = 0;
+
+    if (p->stealth_enabled && p->grounded) {
+        for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
+            MueangNPC *n = &game->npcs[i];
+
+            if (n->alive && n->type == 1 &&
+                distance_xz(p->x, p->z, n->x, n->z) < 2.8f) {
+                game->crowd_blending = 1;
+                break;
+            }
+        }
+    }
+
+    if (!guard_alerted)
+        p->detected = 0;
+}
+
+/* ================= TERRAIN ================= */
 
 float MueangGame_GroundHeight(float x, float z)
 {
@@ -98,17 +303,26 @@ float MueangGame_GroundHeight(float x, float z)
     if (fabsf(x) <= STAIR_X_HALF &&
         z >= STAIR_START_Z &&
         z < STAIR_START_Z + STAIR_STEP_Z * (float)STAIR_COUNT) {
-        int step = (int)floorf((z - STAIR_START_Z) / STAIR_STEP_Z);
+
+        int step = (int)floorf(
+            (z - STAIR_START_Z) / STAIR_STEP_Z
+        );
+
         if (step < 0) step = 0;
         if (step >= STAIR_COUNT) step = STAIR_COUNT - 1;
-        float stair_top = terrain_height(0.0f, STAIR_START_Z)
-                        + (float)(step + 1) * stair_rise();
-        if (stair_top > ground) ground = stair_top;
+
+        float stair_top =
+            terrain_height(0.0f, STAIR_START_Z) +
+            (float)(step + 1) * stair_rise();
+
+        if (stair_top > ground)
+            ground = stair_top;
     }
 
     if (x >= ISLAND_MIN_X && x <= ISLAND_MAX_X &&
         z >= ISLAND_MIN_Z && z <= ISLAND_MAX_Z &&
-        ISLAND_TOP > ground) ground = ISLAND_TOP;
+        ISLAND_TOP > ground)
+        ground = ISLAND_TOP;
 
     if (fabsf(x - BEAM_X) <= BEAM_HALF_WIDTH &&
         z >= BEAM_Z_MIN && z <= BEAM_Z_MAX) {
@@ -120,16 +334,21 @@ float MueangGame_GroundHeight(float x, float z)
         float hay_top = terrain_height(x, z) + 1.375f;
         if (hay_top > ground) ground = hay_top;
     }
+
     if (in_water(x, z)) {
         float water_top = terrain_height(x, z) + 0.24f;
         if (water_top > ground) ground = water_top;
     }
+
     return ground;
 }
+
+/* ================= PLAYER RESET ================= */
 
 static void respawn_player(MueangGame *game)
 {
     MueangPlayer *p = &game->player;
+
     p->x = 0.0f;
     p->z = 0.0f;
     p->jump_height = 0.0f;
@@ -137,33 +356,47 @@ static void respawn_player(MueangGame *game)
     p->surface_y = MueangGame_GroundHeight(0.0f, 0.0f);
     p->fall_start_y = p->surface_y;
     p->grounded = 1;
+
     p->descent_active = 0;
     p->leap_of_faith = 0;
     p->roll_timer = 0.0f;
     p->slide_timer = 0.0f;
     p->safe_landing = 0;
     p->on_beam = 0;
+
     p->traversal_mode = 0;
     p->wallrun_timer = 0.0f;
     p->grapple_timer = 0.0f;
     p->zipline_timer = 0.0f;
     p->pole_vault_timer = 0.0f;
     p->traversal_cooldown = 0.7f;
+
     p->yaw = 0.0f;
     game->camera_yaw = 0.0f;
 }
 
+/* ================= GAME INIT ================= */
+
 void MueangGame_Init(MueangGame *game)
 {
     if (!game) return;
+
     memset(game, 0, sizeof(*game));
+
+    init_npcs(game);
+
     game->player.move_speed = 3.0f;
-    game->player.surface_y = MueangGame_GroundHeight(0.0f, 0.0f);
+    game->player.surface_y =
+        MueangGame_GroundHeight(0.0f, 0.0f);
+
     game->player.fall_start_y = game->player.surface_y;
     game->player.grounded = 1;
+
     game->camera_pitch = 0.18f;
     game->camera_distance = 5.0f;
 }
+
+/* ================= MAIN UPDATE ================= */
 
 void MueangGame_Update(
     MueangGame *game,
@@ -174,10 +407,12 @@ void MueangGame_Update(
 )
 {
     if (!game) return;
+
     MueangPlayer *p = &game->player;
     dt = clampf(dt, 0.0f, 0.05f);
 
     float length = sqrtf(move_x * move_x + move_y * move_y);
+
     if (length > 1.0f) {
         move_x /= length;
         move_y /= length;
@@ -185,27 +420,85 @@ void MueangGame_Update(
     }
 
     game->camera_yaw += look_x * 2.2f * dt;
-    game->camera_pitch = clampf(game->camera_pitch + look_y * 1.5f * dt,
-                                -0.35f, 0.75f);
+
+    game->camera_pitch = clampf(
+        game->camera_pitch + look_y * 1.5f * dt,
+        -0.35f, 0.75f
+    );
 
     float yaw = game->camera_yaw;
     float dir_x = cosf(yaw) * move_x + sinf(yaw) * move_y;
     float dir_z = -sinf(yaw) * move_x + cosf(yaw) * move_y;
-    if (length > 0.05f) p->yaw = atan2f(move_x, move_y) + yaw;
+
+    if (length > 0.05f)
+        p->yaw = atan2f(move_x, move_y) + yaw;
 
     int jump_edge = jump_pressed && !p->jump_was_down;
     int action_edge = action_pressed && !p->action_was_down;
+
     p->jump_was_down = jump_pressed;
     p->action_was_down = action_pressed;
 
-    if (p->roll_timer > 0.0f) p->roll_timer = fmaxf(0.0f, p->roll_timer - dt);
-    if (p->slide_timer > 0.0f) p->slide_timer = fmaxf(0.0f, p->slide_timer - dt);
-    if (p->leap_timer > 0.0f) p->leap_timer = fmaxf(0.0f, p->leap_timer - dt);
-    if (p->wallrun_timer > 0.0f) p->wallrun_timer = fmaxf(0.0f, p->wallrun_timer - dt);
-    if (p->grapple_timer > 0.0f) p->grapple_timer = fmaxf(0.0f, p->grapple_timer - dt);
-    if (p->zipline_timer > 0.0f) p->zipline_timer = fmaxf(0.0f, p->zipline_timer - dt);
-    if (p->pole_vault_timer > 0.0f) p->pole_vault_timer = fmaxf(0.0f, p->pole_vault_timer - dt);
-    if (p->traversal_cooldown > 0.0f) p->traversal_cooldown -= dt;
+    /* Combat animation timer. */
+    if (p->combat_timer > 0.0f) {
+        p->combat_timer -= dt;
+
+        if (p->combat_timer <= 0.0f) {
+            p->combat_timer = 0.0f;
+            p->attacking = 0;
+            p->air_assassination = 0;
+            p->ledge_takedown = 0;
+        }
+    }
+
+    if (p->roll_timer > 0.0f)
+        p->roll_timer = fmaxf(0.0f, p->roll_timer - dt);
+
+    if (p->slide_timer > 0.0f)
+        p->slide_timer = fmaxf(0.0f, p->slide_timer - dt);
+
+    if (p->leap_timer > 0.0f)
+        p->leap_timer = fmaxf(0.0f, p->leap_timer - dt);
+
+    if (p->wallrun_timer > 0.0f)
+        p->wallrun_timer = fmaxf(0.0f, p->wallrun_timer - dt);
+
+    if (p->grapple_timer > 0.0f)
+        p->grapple_timer = fmaxf(0.0f, p->grapple_timer - dt);
+
+    if (p->zipline_timer > 0.0f)
+        p->zipline_timer = fmaxf(0.0f, p->zipline_timer - dt);
+
+    if (p->pole_vault_timer > 0.0f)
+        p->pole_vault_timer = fmaxf(0.0f, p->pole_vault_timer - dt);
+
+    if (p->traversal_cooldown > 0.0f)
+        p->traversal_cooldown -= dt;
+
+    /* Stealth toggle and assassination. */
+    if (action_edge) {
+        MueangNPC *target =
+            find_nearest_target(game, NPC_TAKEDOWN_RANGE);
+
+        if (target) {
+            p->attacking = 1;
+            p->combat_timer = 0.65f;
+
+            if (!p->grounded) {
+                p->air_assassination = 1;
+            } else if (p->surface_y > 1.5f) {
+                p->ledge_takedown = 1;
+            }
+
+            defeat_npc(game, target);
+            action_edge = 0;
+        } else if (length < 0.12f && p->grounded) {
+            p->stealth_enabled = !p->stealth_enabled;
+            p->crouching = p->stealth_enabled;
+            p->stealth_timer = 0.25f;
+            action_edge = 0;
+        }
+    }
 
     /* Release or jump out of a wall run. */
     if (p->traversal_mode == 1) {
@@ -221,21 +514,24 @@ void MueangGame_Update(
         }
     }
 
-    /* Grapple: tap Action while airborne beside a tree or the ancient house. */
-    if (action_edge && !p->grounded && p->traversal_mode == 0 &&
+    /* Grapple. */
+    if (action_edge && !p->grounded &&
+        p->traversal_mode == 0 &&
         p->traversal_cooldown <= 0.0f &&
         near_grapple_anchor(p->x, p->z)) {
+
         p->traversal_mode = 2;
         p->grapple_timer = 1.35f;
         p->vertical_velocity = 3.2f;
         p->traversal_cooldown = 0.35f;
     }
 
-    /* Zipline: hold Sprint and tap Action at the far end of the island stairs. */
+    /* Zipline. */
     if (action_edge && sprint_pressed && p->grounded &&
         p->traversal_mode == 0 &&
         p->x >= -2.5f && p->x <= 2.5f &&
         p->z >= 31.5f && p->z <= 35.2f) {
+
         p->traversal_mode = 3;
         p->zipline_timer = 2.2f;
         p->grounded = 0;
@@ -245,9 +541,11 @@ void MueangGame_Update(
         p->traversal_cooldown = 0.5f;
     }
 
-    /* Pole vault: Jump + Sprint on the balance beam gives a long forward vault. */
-    if (jump_edge && sprint_pressed && p->grounded && p->on_beam &&
+    /* Pole vault. */
+    if (jump_edge && sprint_pressed &&
+        p->grounded && p->on_beam &&
         p->traversal_mode == 0) {
+
         p->traversal_mode = 4;
         p->pole_vault_timer = 0.85f;
         p->vertical_velocity = 9.2f;
@@ -256,10 +554,13 @@ void MueangGame_Update(
         p->traversal_cooldown = 0.35f;
     }
 
-    /* Leap of Faith: Jump + Action at an island edge, facing outward. */
-    if (action_edge && jump_pressed && p->grounded && p->surface_y > 8.0f &&
+    /* Leap of Faith. */
+    if (action_edge && jump_pressed &&
+        p->grounded && p->surface_y > 8.0f &&
         length > 0.08f && p->traversal_mode == 0 &&
-        near_island_edge_in_direction(p->x, p->z, dir_x, dir_z)) {
+        near_island_edge_in_direction(
+            p->x, p->z, dir_x, dir_z)) {
+
         p->grounded = 0;
         p->fall_start_y = p->surface_y;
         p->jump_height = 0.0f;
@@ -267,16 +568,21 @@ void MueangGame_Update(
         p->leap_of_faith = 1;
         p->leap_timer = 1.80f;
         p->descent_active = 0;
-    } else if (action_edge && p->grounded && length > 0.15f &&
+
+    } else if (action_edge && p->grounded &&
+               length > 0.15f &&
                p->traversal_mode == 0) {
         p->slide_timer = 0.72f;
     }
 
-    /* Wall run starts with Sprint + Jump while moving beside a wall/tree. */
-    if (jump_edge && sprint_pressed && p->grounded &&
-        p->traversal_mode == 0 && p->traversal_cooldown <= 0.0f &&
+    /* Wall run. */
+    if (jump_edge && sprint_pressed &&
+        p->grounded && p->traversal_mode == 0 &&
+        p->traversal_cooldown <= 0.0f &&
         length > 0.35f &&
-        (near_house_wall(p->x, p->z) || near_tree(p->x, p->z, 1.15f))) {
+        (near_house_wall(p->x, p->z) ||
+         near_tree(p->x, p->z, 1.15f))) {
+
         p->traversal_mode = 1;
         p->wallrun_timer = 1.15f;
         p->wall_side = (p->x >= 0.0f) ? 1 : -1;
@@ -285,45 +591,60 @@ void MueangGame_Update(
         p->jump_height = 0.65f;
         p->vertical_velocity = 0.8f;
         p->traversal_cooldown = 0.45f;
-    } else if (jump_edge && p->grounded && !p->leap_of_faith &&
+
+    } else if (jump_edge && p->grounded &&
+               !p->leap_of_faith &&
                p->traversal_mode == 0) {
+
         p->vertical_velocity = 7.2f;
         p->fall_start_y = p->surface_y;
         p->grounded = 0;
         p->descent_active = 0;
     }
 
-    float speed = p->move_speed * (sprint_pressed ? 1.75f : 1.0f);
+    float speed = p->move_speed *
+        (sprint_pressed ? 1.75f : 1.0f);
+
     if (p->slide_timer > 0.0f) speed *= 1.55f;
     if (p->on_beam) speed *= 0.62f;
     if (p->traversal_mode == 1) speed *= 1.8f;
     if (p->traversal_mode == 2) speed *= 1.45f;
     if (p->traversal_mode == 4) speed *= 2.0f;
+    if (p->crouching) speed *= 0.55f;
 
     if (p->traversal_mode == 3) {
-        /* Fixed downhill zipline route from island stair landing toward the pool. */
-        float t = clampf((2.2f - p->zipline_timer) / 2.2f, 0.0f, 1.0f);
-        float start_x = p->x;
-        float start_z = p->z;
-        (void)start_x;
-        (void)start_z;
+        float t = clampf(
+            (2.2f - p->zipline_timer) / 2.2f,
+            0.0f, 1.0f
+        );
+
+        (void)t;
+
         p->x += 4.55f * dt;
         p->z += 7.2f * dt;
         p->jump_height -= 1.2f * dt;
         p->vertical_velocity = -1.2f;
-        if (t > 0.88f || p->zipline_timer <= 0.0f) {
+
+        if (p->zipline_timer <= 0.0f) {
             p->traversal_mode = 0;
             p->zipline_timer = 0.0f;
         }
+
     } else if (p->traversal_mode == 2) {
         p->x += dir_x * speed * dt;
         p->z += dir_z * speed * dt;
-        p->jump_height += (sinf((1.35f - p->grapple_timer) * 2.4f) * 2.6f) * dt;
+
+        p->jump_height +=
+            sinf((1.35f - p->grapple_timer) * 2.4f)
+            * 2.6f * dt;
+
         p->vertical_velocity = 0.0f;
+
         if (p->grapple_timer <= 0.0f || jump_edge) {
             p->traversal_mode = 0;
             p->vertical_velocity = 2.8f;
         }
+
     } else {
         if (p->leap_of_faith && p->leap_timer > 0.0f) {
             p->x += dir_x * 7.0f * dt;
@@ -334,10 +655,13 @@ void MueangGame_Update(
         }
     }
 
-    float new_floor = MueangGame_GroundHeight(p->x, p->z);
-    int on_beam_now = fabsf(p->x) <= BEAM_HALF_WIDTH &&
-                      p->z >= BEAM_Z_MIN && p->z <= BEAM_Z_MAX;
-    p->on_beam = on_beam_now;
+    float new_floor =
+        MueangGame_GroundHeight(p->x, p->z);
+
+    p->on_beam =
+        fabsf(p->x) <= BEAM_HALF_WIDTH &&
+        p->z >= BEAM_Z_MIN &&
+        p->z <= BEAM_Z_MAX;
 
     if (p->grounded) {
         if (new_floor < p->surface_y - 0.25f) {
@@ -356,30 +680,46 @@ void MueangGame_Update(
         if (p->traversal_mode == 1) {
             p->jump_height += 0.18f * dt;
             p->vertical_velocity = 0.0f;
-        } else if (p->traversal_mode == 2 || p->traversal_mode == 3) {
-            /* These modes control their own vertical movement above. */
+
+        } else if (p->traversal_mode == 2 ||
+                   p->traversal_mode == 3) {
+            /* Traversal modes control vertical movement. */
+
         } else if (p->descent_active && action_pressed) {
             p->vertical_velocity -= 5.0f * dt;
-            if (p->vertical_velocity < -3.0f) p->vertical_velocity = -3.0f;
+
+            if (p->vertical_velocity < -3.0f)
+                p->vertical_velocity = -3.0f;
+
         } else {
             p->descent_active = 0;
             p->vertical_velocity -= 18.0f * dt;
         }
 
-        if (p->traversal_mode != 2 && p->traversal_mode != 3)
+        if (p->traversal_mode != 2 &&
+            p->traversal_mode != 3) {
             p->jump_height += p->vertical_velocity * dt;
+        }
 
         float world_y = p->surface_y + p->jump_height;
-        int still_over_launch_island = p->leap_of_faith &&
+
+        int still_over_launch_island =
+            p->leap_of_faith &&
             new_floor > p->fall_start_y - 2.0f;
 
         if (p->traversal_mode == 1) {
-            /* Wall-run is held above ground; it can be exited with Jump. */
-        } else if (!still_over_launch_island && world_y <= new_floor) {
-            float fall_distance = p->fall_start_y - new_floor;
+            /* Wall run remains above the ground. */
+
+        } else if (!still_over_launch_island &&
+                   world_y <= new_floor) {
+
+            float fall_distance =
+                p->fall_start_y - new_floor;
+
             int hay = in_haystack(p->x, p->z);
             int water = in_water(p->x, p->z);
             int controlled = p->descent_active;
+
             p->safe_landing = hay || water || controlled;
 
             p->surface_y = new_floor;
@@ -389,6 +729,7 @@ void MueangGame_Update(
             p->descent_active = 0;
             p->leap_of_faith = 0;
             p->leap_timer = 0.0f;
+
             p->traversal_mode = 0;
             p->grapple_timer = 0.0f;
             p->zipline_timer = 0.0f;
@@ -396,11 +737,14 @@ void MueangGame_Update(
 
             if (p->safe_landing) {
                 p->roll_timer = controlled ? 0.55f : 0.45f;
+
             } else if (fall_distance > 8.0f) {
                 respawn_player(game);
+
             } else if (fall_distance > 1.5f) {
                 p->roll_timer = 0.55f;
             }
+
         } else if (world_y < -12.0f) {
             respawn_player(game);
         }
@@ -410,4 +754,7 @@ void MueangGame_Update(
         if (p->pole_vault_timer <= 0.0f && !p->grounded)
             p->traversal_mode = 0;
     }
+
+    /* NPC AI runs after player movement. */
+    update_npc_ai(game, dt);
 }
