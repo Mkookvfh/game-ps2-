@@ -3,9 +3,10 @@
 #define MUEANG_RENDERER3D_H
 
 #include <GLES2/gl2.h>
+#include <android/asset_manager.h>
 #include "game.h"
 
-typedef struct {
+typedef struct Renderer3D {
     GLuint program;
     GLint position;
     GLint normal;
@@ -15,7 +16,10 @@ typedef struct {
     GLint camera;
 } Renderer3D;
 
-int Renderer3D_Init(Renderer3D *renderer);
+int Renderer3D_Init(
+    Renderer3D *renderer,
+    AAssetManager *assets
+);
 
 void Renderer3D_Draw(
     Renderer3D *renderer,
@@ -23,5 +27,7 @@ void Renderer3D_Draw(
     int width,
     int height
 );
+
+void Renderer3D_Release(Renderer3D *renderer);
 
 #endif
