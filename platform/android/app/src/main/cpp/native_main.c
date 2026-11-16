@@ -1442,6 +1442,49 @@ static int init_egl(
     return 1;
 }
 
+
+/* =========================================================
+   ANDROID COMMAND HANDLER
+   ========================================================= */
+
+static void handle_cmd(
+    struct android_app *app,
+    int32_t cmd)
+{
+    GameState *s = (GameState *)app->userData;
+
+    if (!s) {
+        return;
+    }
+
+    switch (cmd) {
+
+        case APP_CMD_INIT_WINDOW:
+            if (app->window && !s->ready) {
+                if (!init_egl(app, s)) {
+                    LOGE("Failed to initialize EGL");
+                }
+            }
+            break;
+
+        case APP_CMD_TERM_WINDOW:
+            if (s->ready) {
+                destroy_egl(s);
+            }
+            break;
+
+        case APP_CMD_LOST_FOCUS:
+            s->move_x = 0.0f;
+            s->move_y = 0.0f;
+            s->look_dx = 0.0f;
+            s->look_dy = 0.0f;
+            break;
+
+        default:
+            break;
+    }
+}
+
 /* =========================================================
    ANDROID COMMAND
    ========================================================= */
