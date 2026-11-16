@@ -6,7 +6,7 @@ extern "C" {
 #endif
 #define MUEANG_SKELETON_BONE_COUNT 21
 #define MUEANG_SKELETON_PART_COUNT 27
-/* Builds the rigid-bone transform for one modular GLB mesh part. */
+void Skeleton_BuildBonePalette(MueangAnimState state,float phase,int crouching,float out[MUEANG_SKELETON_BONE_COUNT][16]);
 void Skeleton_BuildPartMatrix(int part,MueangAnimState state,float phase,int crouching,float out[16]);
 const char *Skeleton_BoneName(int bone);
 #ifdef __cplusplus
