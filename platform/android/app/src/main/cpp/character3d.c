@@ -1,6 +1,7 @@
 
 #include "character3d.h"
 #include "glb_loader.h"
+#include "animation.h"
 #include <math.h>
 
 /* MUEANG ISARA - Character GLB Integration
@@ -251,13 +252,16 @@ void Character3D_Draw(Renderer3D *r,const MueangGame *g,
         model_bob=fabsf(sinf(phase))*.025f;
 
     if(!GLBLoader_Draw(
-            r,
-            vp,
-            p->x,
-            player_y,
-            p->z,
-            p->yaw,
-            model_bob)) {
+        r,
+        vp,
+        p->x,
+        player_y,
+        p->z,
+        p->yaw,
+        model_bob,
+        (int)Animation_SelectState(p,moving),
+        phase,
+        p->crouching)) {
 
         /* Fallback if the GLB asset could not be loaded. */
         human(r,vp,cube,p->x,player_y,p->z,p->yaw,
