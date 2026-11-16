@@ -1,5 +1,7 @@
+
 #include <android_native_app_glue.h>
 #include <android/log.h>
+#include <android/asset_manager.h>
 #include <android/input.h>
 #include <EGL/egl.h>
 #include <GLES2/gl2.h>
@@ -142,21 +144,21 @@ static void render_scene(GameState *s, int w, int h)
         draw_disc(s, 0.72f, -0.72f, 0.06f, 0.85f, 0.85f, 0.90f);
     }
 
-    /* Large, high-contrast Jump button */
+    /* Jump button */
     draw_disc(s, 0.78f, -0.38f, 0.18f, 0.08f, 0.08f, 0.08f);
     draw_disc(s, 0.78f, -0.38f, 0.15f,
               s->jump_pointer != INVALID_POINTER_ID ? 1.0f : 0.25f,
               0.85f, 0.18f);
     draw_disc(s, 0.78f, -0.38f, 0.055f, 1.0f, 1.0f, 1.0f);
 
-    /* Large Sprint button */
+    /* Sprint button */
     draw_disc(s, 0.53f, -0.72f, 0.16f, 0.08f, 0.08f, 0.08f);
     draw_disc(s, 0.53f, -0.72f, 0.135f,
               s->sprint_pointer != INVALID_POINTER_ID ? 1.0f : 0.95f,
               0.55f, 0.08f);
     draw_disc(s, 0.53f, -0.72f, 0.05f, 1.0f, 1.0f, 1.0f);
 
-    /* Large Action button */
+    /* Action button */
     draw_disc(s, 0.53f, -0.38f, 0.18f, 0.08f, 0.08f, 0.08f);
     draw_disc(s, 0.53f, -0.38f, 0.15f,
               s->action_pointer != INVALID_POINTER_ID ? 0.10f : 0.05f,
@@ -191,7 +193,6 @@ static int find_pointer(const AInputEvent *event, int pointer_id)
     return -1;
 }
 
-/* Match touch coordinates to the same normalized screen positions used to draw. */
 static int hit_button(float x, float y, int w, int h,
                       float cx, float cy, float rx, float ry)
 {
@@ -202,13 +203,12 @@ static int hit_button(float x, float y, int w, int h,
     return dx * dx + dy * dy <= 1.0f;
 }
 
-/* Return the nearest button when generous touch areas overlap. */
 static int pick_button(float x, float y, int w, int h)
 {
     static const float centers[3][2] = {
-        {0.78f, -0.38f}, /* Jump */
-        {0.53f, -0.72f}, /* Sprint */
-        {0.53f, -0.38f}  /* Action */
+        {0.78f, -0.38f},
+        {0.53f, -0.72f},
+        {0.53f, -0.38f}
     };
 
     int best = -1;
@@ -356,12 +356,28 @@ static int handle_input(struct android_app *app, AInputEvent *event)
 static void destroy_egl(GameState *s)
 {
     if (s->display != EGL_NO_DISPLAY) {
+
+        /* Release GL resources before destroying the EGL context. */
+        if (s->context != EGL_NO_CONTEXT &&
+            eglGetCurrentContext() == s->context) {
+
+            Renderer3D_Release(&s->renderer);
+
+            if (s->program) {
+                glDeleteProgram(s->program);
+                s->program = 0;
+            }
+        }
+
         eglMakeCurrent(s->display, EGL_NO_SURFACE,
                        EGL_NO_SURFACE, EGL_NO_CONTEXT);
+
         if (s->context != EGL_NO_CONTEXT)
             eglDestroyContext(s->display, s->context);
+
         if (s->surface != EGL_NO_SURFACE)
             eglDestroySurface(s->display, s->surface);
+
         eglTerminate(s->display);
     }
 
@@ -422,7 +438,8 @@ static int init_egl(struct android_app *app, GameState *s)
         return 0;
     }
 
-    if (!create_program(s) || !Renderer3D_Init(&s->renderer)) {
+    if (!create_program(s) ||
+        !Renderer3D_Init(&s->renderer, app->activity->assetManager)) {
         destroy_egl(s);
         return 0;
     }
