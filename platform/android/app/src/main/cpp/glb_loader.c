@@ -6,9 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <sys/types.h>
 
 #define GLB_PART_COUNT 27
 #define GLB_FLOATS_PER_VERTEX 6
+#define GLB_INDEX_SIZE 2
 
 typedef struct {
     uint32_t position_offset;
@@ -27,12 +29,7 @@ typedef struct {
 static GLBPart g_parts[GLB_PART_COUNT];
 static int g_loaded = 0;
 
-/*
- * Offsets verified against:
- * MUEANG_ISARA_Main_Assassin_02.glb
- *
- * Binary buffer starts after GLB JSON and BIN chunks.
- */
+/* Offsets for MUEANG_ISARA_Main_Assassin_02.glb */
 static const GLBPartInfo g_info[GLB_PART_COUNT] = {
     {144,    8, 240,     0,  36},
     {272,    8, 368,     0,  36},
@@ -78,6 +75,13 @@ static uint32_t read_u32(const unsigned char *p)
         | ((uint32_t)p[3] << 24);
 }
 
+/* GLB model uses UNSIGNED_SHORT indices (16-bit). */
+static uint16_t read_u16(const unsigned char *p)
+{
+    return (uint16_t)p[0]
+        | ((uint16_t)p[1] << 8);
+}
+
 static void matrix_identity(float *m)
 {
     memset(m, 0, sizeof(float) * 16);
@@ -115,17 +119,22 @@ static int build_part(
 {
     const GLBPartInfo *info = &g_info[part_index];
 
-    size_t pos_bytes = (size_t)info->vertex_count * 12;
-    size_t color_bytes = (size_t)info->vertex_count * 4;
-    size_t index_bytes = (size_t)info->index_count * 4;
+    size_t pos_bytes =
+        (size_t)info->vertex_count * 12;
 
-    if (info->position_offset + pos_bytes > bin_size)
+    size_t color_bytes =
+        (size_t)info->vertex_count * 4;
+
+    size_t index_bytes =
+        (size_t)info->index_count * GLB_INDEX_SIZE;
+
+    if ((size_t)info->position_offset + pos_bytes > bin_size)
         return 0;
 
-    if (info->color_offset + color_bytes > bin_size)
+    if ((size_t)info->color_offset + color_bytes > bin_size)
         return 0;
 
-    if (info->index_offset + index_bytes > bin_size)
+    if ((size_t)info->index_offset + index_bytes > bin_size)
         return 0;
 
     const unsigned char *positions =
@@ -154,9 +163,10 @@ static int build_part(
     float cb = colors[2] / 255.0f;
 
     for (uint32_t i = 0; i < info->index_count; i += 3) {
-        uint32_t ia = read_u32(indices + i * 4);
-        uint32_t ib = read_u32(indices + (i + 1) * 4);
-        uint32_t ic = read_u32(indices + (i + 2) * 4);
+
+        uint32_t ia = read_u16(indices + i * GLB_INDEX_SIZE);
+        uint32_t ib = read_u16(indices + (i + 1) * GLB_INDEX_SIZE);
+        uint32_t ic = read_u16(indices + (i + 2) * GLB_INDEX_SIZE);
 
         if (ia >= info->vertex_count ||
             ib >= info->vertex_count ||
@@ -183,7 +193,8 @@ static int build_part(
         float ny = uz * vx - ux * vz;
         float nz = ux * vy - uy * vx;
 
-        float length = sqrtf(nx * nx + ny * ny + nz * nz);
+        float length =
+            sqrtf(nx * nx + ny * ny + nz * nz);
 
         if (length > 0.00001f) {
             nx /= length;
@@ -282,7 +293,8 @@ int GLBLoader_Load(
 
     off_t asset_length = AAsset_getLength(asset);
 
-    if (asset_length < 32 || asset_length > 16 * 1024 * 1024) {
+    if (asset_length < 32 ||
+        asset_length > 16 * 1024 * 1024) {
         AAsset_close(asset);
         return 0;
     }
@@ -341,7 +353,8 @@ int GLBLoader_Load(
         return 0;
     }
 
-    const unsigned char *bin = file + bin_header + 8u;
+    const unsigned char *bin =
+        file + bin_header + 8u;
 
     int success = 1;
 
