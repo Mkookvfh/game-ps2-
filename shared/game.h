@@ -65,6 +65,10 @@ typedef struct {
     float patrol_timer;
     float awareness;
     float attack_timer;
+    float last_seen_x;
+    float last_seen_z;
+    float lost_sight_timer;
+    float search_timer;
 
     int type;
     int state;
