@@ -57,8 +57,8 @@ typedef struct {
     float awareness;
     float attack_timer;
 
-    int type;       /* 0 = guard, 1 = civilian */
-    int state;      /* 0 = patrol, 1 = suspicious, 2 = alerted, 3 = defeated */
+    int type;
+    int state;
     int alive;
 } MueangNPC;
 
@@ -73,6 +73,13 @@ typedef struct {
     float alert_level;
     int enemies_defeated;
     int crowd_blending;
+
+    /* Synchronization Point */
+    int sync_unlocked;
+    int sync_active;
+    int sync_prompt;
+    float sync_timer;
+
 } MueangGame;
 
 void MueangGame_Init(MueangGame *game);
