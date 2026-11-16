@@ -3,6 +3,7 @@
 #include <android/log.h>
 #include <math.h>
 #include <string.h>
+#include "character3d.h"
 
 #define PI 3.14159265f
 #define TERRAIN_SIZE 32
