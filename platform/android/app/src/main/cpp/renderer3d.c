@@ -508,96 +508,10 @@ void Renderer3D_Draw(Renderer3D*r,const MueangGame*g,int w,int h){
     draw_floating_island(r,vp);
     draw_parkour_props(r,vp);
 
-    /* NPC: Guards and civilians */
-    for(int i=0;i<MUEANG_NPC_COUNT;i++){
-        const MueangNPC *npc=&g->npcs[i];
+    
+/* Modular Character System */
+Character3D_Draw(r, g, vp, player_y);
 
-        if(!npc->alive||npc->state==3)
-            continue;
-
-        float nx=npc->x;
-        float nz=npc->z;
-        float ny=MueangGame_GroundHeight(nx,nz);
-
-        float cr,cg,cb;
-
-        if(npc->type==0){
-            cr=.18f;cg=.22f;cb=.32f;
-
-            if(npc->state==2){
-                cr=.75f;cg=.12f;cb=.08f;
-            }
-        }else{
-            cr=.48f;cg=.34f;cb=.20f;
-        }
-
-        draw_cube(r,vp,nx,ny+.85f,nz,
-            .48f,1.15f,.38f,npc->yaw,cr,cg,cb);
-
-        draw_cube(r,vp,nx,ny+1.58f,nz,
-            .34f,.34f,.34f,npc->yaw,.76f,.62f,.48f);
-
-        if(npc->type==0){
-            draw_cube(r,vp,nx,ny+1.78f,nz,
-                .40f,.12f,.40f,npc->yaw,.28f,.30f,.34f);
-        }
-    }
-
-    /* Player */
-    float py=player_y;
-
-    if(g->player.slide_timer>0.0f||
-       g->player.roll_timer>0.0f){
-
-        draw_cube(r,vp,px,py+.38f,pz,
-            .82f,.48f,.42f,g->player.yaw,
-            .78f,.76f,.70f);
-
-        draw_cube(r,vp,px,py+.72f,pz,
-            .32f,.32f,.32f,g->player.yaw,
-            .82f,.78f,.66f);
-
-    }else if(g->player.leap_of_faith){
-
-        draw_cube(r,vp,px,py+.88f,pz,
-            .95f,.30f,.38f,g->player.yaw,
-            .78f,.76f,.70f);
-
-        draw_cube(r,vp,px,py+1.05f,pz-.40f,
-            .30f,.30f,.30f,g->player.yaw,
-            .82f,.78f,.66f);
-
-    }else if(g->player.crouching){
-
-        /* Stealth crouching body */
-        draw_cube(r,vp,px,py+.58f,pz,
-            .68f,.78f,.42f,g->player.yaw,
-            .72f,.70f,.64f);
-
-        /* Lowered head */
-        draw_cube(r,vp,px,py+1.08f,pz,
-            .38f,.38f,.38f,g->player.yaw,
-            .82f,.78f,.66f);
-
-        /* Lowered red cape */
-        draw_cube(r,vp,px,py+.58f,pz-.28f,
-            .76f,.72f,.12f,g->player.yaw,
-            .55f,.08f,.06f);
-
-    }else{
-
-        draw_cube(r,vp,px,py+.95f,pz,
-            .55f,1.35f,.38f,g->player.yaw,
-            .78f,.76f,.70f);
-
-        draw_cube(r,vp,px,py+1.85f,pz,
-            .42f,.42f,.42f,g->player.yaw,
-            .82f,.78f,.66f);
-
-        draw_cube(r,vp,px,py+.95f,pz-.28f,
-            .72f,1.25f,.12f,g->player.yaw,
-            .55f,.08f,.06f);
-    }
 
     glDisableVertexAttribArray(r->position);
     glDisableVertexAttribArray(r->normal);
