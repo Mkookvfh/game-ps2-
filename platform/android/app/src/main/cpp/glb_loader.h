@@ -9,18 +9,17 @@
 extern "C" {
 #endif
 
-typedef struct Renderer3D Renderer3D;
+struct Renderer3D;
 
-/* Initialize the GLB model loader using Android assets. */
 int GLBLoader_Load(
-    Renderer3D *renderer,
+    struct Renderer3D *renderer,
     AAssetManager *asset_manager,
     const char *asset_path
 );
 
-/* Draw the loaded main character model. */
 int GLBLoader_Draw(
-    Renderer3D *renderer,
+    struct Renderer3D *renderer,
+    const float *view_projection,
     float x,
     float y,
     float z,
@@ -28,8 +27,7 @@ int GLBLoader_Draw(
     float bob
 );
 
-/* Release OpenGL resources while EGL context is current. */
-void GLBLoader_Release(Renderer3D *renderer);
+void GLBLoader_Release(struct Renderer3D *renderer);
 
 #ifdef __cplusplus
 }
