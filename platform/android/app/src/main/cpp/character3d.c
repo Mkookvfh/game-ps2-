@@ -1,7 +1,7 @@
 #include "character3d.h"
 #include <math.h>
 
-/* MUEANG ISARA - Animation Pack 04
+/* MUEANG ISARA - Animation Pack 04 + Cape Attachment Fix
  * Procedural ES 2.0 character poses built from the existing modular cube mesh.
  * Local +Z is forward; local -Z is behind the character.
  */
@@ -92,21 +92,20 @@ static void human(Renderer3D *r,const float *vp,const float *cube,
     float arm_l=s*.22f, arm_r=-s*.22f;
     float leg_l=s*.25f, leg_r=s2*.25f;
     float leg_zl=s*.12f, leg_zr=-leg_zl;
-    float cape_sway=moving?sinf(phase*.72f)*.09f:0.0f;
-    float cape_lift=moving?fabsf(s)*.045f:0.0f;
+    float cape_sway=moving?sinf(phase*.72f)*.045f:0.0f;
+    float cape_lift=moving?fabsf(s)*.035f:0.0f;
     float head_y=1.78f, arm_y=0.98f, leg_y=.31f;
     float jump_offset=airborne?.10f:0.0f;
 
     if(crouch) { torso_y=.78f; torso_h=.72f; head_y=1.28f; arm_y=.72f; }
-    if(pose==1) { arm_l=-.48f; arm_r=.48f; leg_l=.16f; leg_r=-.16f; leg_zl=.08f; leg_zr=-.08f; cape_lift=.15f; }
-    if(pose==2) { torso_y=.48f; torso_h=.62f; head_y=.92f; arm_y=.45f; leg_y=.18f; lean=.12f; cape_lift=.18f; }
-    if(pose==3) { torso_y=.62f; torso_h=.70f; head_y=1.20f; arm_y=.58f; leg_y=.22f; lean=.08f; cape_lift=.12f; }
-    if(pose==4) { torso_y=.92f; arm_l=-.55f; arm_r=.55f; leg_l=.42f; leg_r=-.42f; cape_lift=.18f; }
-    if(pose==5) { torso_y=.90f; arm_l=-.72f; arm_r=.72f; leg_l=.20f; leg_r=-.20f; cape_lift=.22f; }
-    if(pose==6) { torso_y=1.05f; arm_l=-.85f; arm_r=.85f; leg_l=.45f; leg_r=-.35f; cape_lift=.20f; }
+    if(pose==1) { arm_l=-.48f; arm_r=.48f; leg_l=.16f; leg_r=-.16f; leg_zl=.08f; leg_zr=-.08f; cape_lift=.12f; }
+    if(pose==2) { torso_y=.48f; torso_h=.62f; head_y=.92f; arm_y=.45f; leg_y=.18f; lean=.12f; cape_lift=.14f; }
+    if(pose==3) { torso_y=.62f; torso_h=.70f; head_y=1.20f; arm_y=.58f; leg_y=.22f; lean=.08f; cape_lift=.10f; }
+    if(pose==4) { torso_y=.92f; arm_l=-.55f; arm_r=.55f; leg_l=.42f; leg_r=-.42f; cape_lift=.14f; }
+    if(pose==5) { torso_y=.90f; arm_l=-.72f; arm_r=.72f; leg_l=.20f; leg_r=-.20f; cape_lift=.16f; }
+    if(pose==6) { torso_y=1.05f; arm_l=-.85f; arm_r=.85f; leg_l=.45f; leg_r=-.35f; cape_lift=.15f; }
     if(pose==7) { arm_l=-.95f; arm_r=.30f; lean=.06f; }
 
-    /* Small attack recoil near the end of the action timer. */
     if(pose==7) {
         float hit=sinf((1.0f-action_t)*PI);
         arm_l-=hit*.22f;
@@ -123,11 +122,19 @@ static void human(Renderer3D *r,const float *vp,const float *cube,
     if(kind==0) {
         draw_part(r,vp,cube,x,y,z,0,head_y+.14f+jump_offset,-.02f,
             .40f,.30f,.37f,yaw,.18f,.17f,.16f);
-        /* Cape remains behind the +Z forward direction. */
-        draw_part(r,vp,cube,x,y,z,cape_sway,torso_y+.10f+cape_lift,
-            -.27f,.64f,crouch?.62f:1.20f,.14f,yaw,cape[0],cape[1],cape[2]);
-        draw_part(r,vp,cube,x,y,z,cape_sway*.7f,torso_y-.48f+cape_lift,
-            -.27f,.60f,.48f,.14f,yaw,.38f,.025f,.035f);
+
+        /* Shoulder attachment: overlaps the torso slightly so the cape
+           visibly starts at the upper back instead of hovering behind it. */
+        draw_part(r,vp,cube,x,y,z,0,torso_y+.34f+bob,-.195f,
+            .52f,.24f,.12f,yaw,.38f,.025f,.035f);
+
+        /* Cape panel is pushed into the back surface by a small amount.
+           The top stays anchored; only the lower cloth sways and lifts. */
+        draw_part(r,vp,cube,x,y,z,cape_sway,torso_y-.02f+bob+cape_lift*.35f,
+            -.205f,.60f,crouch?.94f:1.10f,.13f,yaw,cape[0],cape[1],cape[2]);
+        draw_part(r,vp,cube,x,y,z,cape_sway*1.25f,torso_y-.48f+bob+cape_lift,
+            -.215f,.58f,.42f,.14f,yaw,.38f,.025f,.035f);
+
         draw_part(r,vp,cube,x,y,z,-.31f,torso_y+.25f+bob,0,
             .24f,.22f,.36f,yaw,.30f,.27f,.22f);
         draw_part(r,vp,cube,x,y,z,.31f,torso_y+.25f+bob,0,
