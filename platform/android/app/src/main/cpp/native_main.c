@@ -41,6 +41,8 @@ typedef struct {
     int sprint_pointer;
     int action_pointer;
     int harvest_pointer;
+    int inventory_pointer;
+    int inventory_open;
 
     float anchor_x;
     float anchor_y;
@@ -297,6 +299,104 @@ static void draw_rect(
 }
 
 /* =========================================================
+   INVENTORY FONT
+   ========================================================= */
+
+static unsigned short inventory_glyph(char c)
+{
+    switch (c) {
+        case 'H': return 0x5B6D;
+        case 'W': return 0x6B7F;
+        case 'S': return 0x3972;
+        case 'I': return 0x7497;
+        case 'F': return 0x3924;
+        case 'R': return 0x5B6A;
+
+        case '0': return 0x7B6F;
+        case '1': return 0x7497;
+        case '2': return 0x73E7;
+        case '3': return 0x73CF;
+        case '4': return 0x5BC9;
+        case '5': return 0x79CF;
+        case '6': return 0x79EF;
+        case '7': return 0x7249;
+        case '8': return 0x7BEF;
+        case '9': return 0x7BCF;
+
+        default: return 0;
+    }
+}
+
+static void draw_inventory_char(
+    GameState *s,
+    char c,
+    float x,
+    float y,
+    float scale,
+    float r,
+    float g,
+    float b)
+{
+    unsigned short bits = inventory_glyph(c);
+
+    for (int row = 0; row < 5; ++row) {
+        for (int col = 0; col < 3; ++col) {
+
+            int bit = 14 - (row * 3 + col);
+
+            if (bits & (1u << bit)) {
+
+                float px = x + col * scale;
+                float py = y - row * scale;
+
+                draw_rect(
+                    s,
+                    px,
+                    py - scale * 0.8f,
+                    px + scale * 0.8f,
+                    py,
+                    r,
+                    g,
+                    b
+                );
+            }
+        }
+    }
+}
+
+static void draw_inventory_number(
+    GameState *s,
+    int value,
+    float x,
+    float y)
+{
+    if (value < 0) value = 0;
+    if (value > 99) value = 99;
+
+    draw_inventory_char(
+        s,
+        (char)('0' + value / 10),
+        x,
+        y,
+        0.018f,
+        1.0f,
+        1.0f,
+        1.0f
+    );
+
+    draw_inventory_char(
+        s,
+        (char)('0' + value % 10),
+        x + 0.075f,
+        y,
+        0.018f,
+        1.0f,
+        1.0f,
+        1.0f
+    );
+}
+
+/* =========================================================
    RESOURCE UI
    ========================================================= */
 
@@ -338,8 +438,6 @@ static void render_resource_ui(GameState *s)
         near_resource ? 0.25f : 0.25f
     );
 
-    /* Simple leaf-like symbol */
-
     draw_disc(
         s,
         0.765f,
@@ -361,6 +459,7 @@ static void render_resource_ui(GameState *s)
     );
 
     if (harvesting) {
+
         draw_disc(
             s,
             0.78f,
@@ -382,8 +481,6 @@ static void render_resource_ui(GameState *s)
         );
     }
 
-    /* Progress bar appears near a resource */
-
     if (near_resource ||
         status == MUEANG_HARVESTING ||
         status == MUEANG_HARVEST_INVENTORY_FULL) {
@@ -402,6 +499,7 @@ static void render_resource_ui(GameState *s)
         float fill_width = 0.43f * progress;
 
         if (fill_width > 0.0f) {
+
             draw_rect(
                 s,
                 0.55f,
@@ -413,6 +511,155 @@ static void render_resource_ui(GameState *s)
                 status == MUEANG_HARVEST_INVENTORY_FULL
                     ? 0.15f : 0.90f,
                 0.20f
+            );
+        }
+    }
+}
+
+/* =========================================================
+   INVENTORY PANEL
+   ========================================================= */
+
+static void render_inventory_ui(GameState *s)
+{
+    /* Inventory button */
+
+    draw_disc(
+        s,
+        -0.78f,
+        0.78f,
+        0.105f,
+        0.08f,
+        0.08f,
+        0.08f
+    );
+
+    draw_disc(
+        s,
+        -0.78f,
+        0.78f,
+        0.085f,
+        0.12f,
+        0.45f,
+        0.75f
+    );
+
+    draw_inventory_char(
+        s,
+        'I',
+        -0.805f,
+        0.815f,
+        0.018f,
+        1.0f,
+        1.0f,
+        1.0f
+    );
+
+    if (!s->inventory_open)
+        return;
+
+    /* Panel background */
+
+    draw_rect(
+        s,
+        -0.97f,
+        0.68f,
+        -0.38f,
+        0.94f,
+        0.035f,
+        0.045f,
+        0.055f
+    );
+
+    /* Header */
+
+    draw_inventory_char(
+        s,
+        'I',
+        -0.92f,
+        0.91f,
+        0.018f,
+        0.3f,
+        0.85f,
+        1.0f
+    );
+
+    draw_inventory_char(
+        s,
+        'R',
+        -0.85f,
+        0.91f,
+        0.018f,
+        0.3f,
+        0.85f,
+        1.0f
+    );
+
+    static const float colors[5][3] = {
+        {0.25f, 0.85f, 0.30f},
+        {0.75f, 0.48f, 0.20f},
+        {0.65f, 0.65f, 0.65f},
+        {0.85f, 0.55f, 0.20f},
+        {0.30f, 0.75f, 0.85f}
+    };
+
+    static const char labels[5] = {
+        'H', 'W', 'S', 'I', 'F'
+    };
+
+    for (int i = 0; i < 5; ++i) {
+
+        float y = 0.85f - (float)i * 0.045f;
+
+        draw_inventory_char(
+            s,
+            labels[i],
+            -0.91f,
+            y,
+            0.014f,
+            colors[i][0],
+            colors[i][1],
+            colors[i][2]
+        );
+
+        int count = MueangResource_GetCount(
+            &s->resources,
+            (MueangResourceItem)i
+        );
+
+        draw_inventory_number(
+            s,
+            count,
+            -0.72f,
+            y
+        );
+
+        /* Quantity background */
+
+        draw_rect(
+            s,
+            -0.52f,
+            y - 0.012f,
+            -0.42f,
+            y - 0.002f,
+            0.16f,
+            0.16f,
+            0.16f
+        );
+
+        float fill = 0.10f * ((float)count / 99.0f);
+
+        if (fill > 0.0f) {
+
+            draw_rect(
+                s,
+                -0.52f,
+                y - 0.012f,
+                -0.52f + fill,
+                y - 0.002f,
+                colors[i][0],
+                colors[i][1],
+                colors[i][2]
             );
         }
     }
@@ -585,9 +832,10 @@ static void render_scene(
         1.0f
     );
 
-    /* Resource harvesting UI */
+    /* Resource and Inventory UI */
 
     render_resource_ui(s);
+    render_inventory_ui(s);
 
     glDisableVertexAttribArray(s->position);
 }
@@ -665,18 +913,19 @@ static int pick_button(
     int w,
     int h)
 {
-    static const float centers[4][2] = {
+    static const float centers[5][2] = {
         {0.78f, -0.38f},
         {0.53f, -0.72f},
         {0.53f, -0.38f},
-        {0.78f, 0.72f}
+        {0.78f, 0.72f},
+        {-0.78f, 0.78f}
     };
 
     int best = -1;
 
     float best_distance = 999999.0f;
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
 
         if (!hit_button(
                 x,
@@ -762,7 +1011,18 @@ static int handle_input(
         float y =
             AMotionEvent_getY(event, index);
 
-        if (x < width * 0.48f &&
+        int pressed_button =
+            pick_button(x, y, width, height);
+
+        /* Inventory button must be checked before joystick */
+
+        if (pressed_button == 4 &&
+            s->inventory_pointer == INVALID_POINTER_ID) {
+
+            s->inventory_pointer = id;
+
+        } else if (
+            x < width * 0.48f &&
             s->left_pointer == INVALID_POINTER_ID) {
 
             s->left_pointer = id;
@@ -775,8 +1035,7 @@ static int handle_input(
 
         } else {
 
-            int button =
-                pick_button(x, y, width, height);
+            int button = pressed_button;
 
             if (button == 0 &&
                 s->jump_pointer == INVALID_POINTER_ID) {
@@ -833,7 +1092,7 @@ static int handle_input(
                     AMotionEvent_getX(event, i),
                     AMotionEvent_getY(event, i)
                 );
-            }
+}
         }
 
         if (s->right_pointer != INVALID_POINTER_ID) {
@@ -890,6 +1149,13 @@ static int handle_input(
         if (id == s->harvest_pointer)
             s->harvest_pointer = INVALID_POINTER_ID;
 
+        if (id == s->inventory_pointer) {
+
+            s->inventory_pointer = INVALID_POINTER_ID;
+
+            s->inventory_open = !s->inventory_open;
+        }
+
         return 1;
     }
 
@@ -904,6 +1170,7 @@ static int handle_input(
         s->sprint_pointer = INVALID_POINTER_ID;
         s->action_pointer = INVALID_POINTER_ID;
         s->harvest_pointer = INVALID_POINTER_ID;
+        s->inventory_pointer = INVALID_POINTER_ID;
 
         s->move_x = 0;
         s->move_y = 0;
@@ -1136,6 +1403,8 @@ void android_main(struct android_app *app)
     state.sprint_pointer = INVALID_POINTER_ID;
     state.action_pointer = INVALID_POINTER_ID;
     state.harvest_pointer = INVALID_POINTER_ID;
+    state.inventory_pointer = INVALID_POINTER_ID;
+    state.inventory_open = 0;
 
     /* Initialize existing game */
 
@@ -1256,3 +1525,5 @@ void android_main(struct android_app *app)
 
     destroy_egl(&state);
 }
+
+      
