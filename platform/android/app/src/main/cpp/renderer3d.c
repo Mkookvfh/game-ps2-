@@ -4,6 +4,7 @@
 #include <math.h>
 #include <string.h>
 #include "character3d.h"
+#include "glb_loader.h"
 
 #define PI 3.14159265f
 #define TERRAIN_SIZE 32
@@ -370,7 +371,7 @@ static void draw_parkour_props(Renderer3D*r,const float*vp){
         6.8f,.24f,6.8f,0,.18f,.48f,.66f);
 }
 
-int Renderer3D_Init(Renderer3D*r){
+int Renderer3D_Init(Renderer3D*r,AAssetManager *assets){
     if(!r)return 0;
 
     memset(r,0,sizeof(*r));
@@ -430,7 +431,34 @@ int Renderer3D_Init(Renderer3D*r){
     }
 
     build_cube();
+
+    if (!GLBLoader_Load(r, assets,
+            "models/MUEANG_ISARA_Main_Assassin_02.glb")) {
+        __android_log_print(ANDROID_LOG_WARN,
+            "MUEANG_ISARA",
+            "Main Assassin GLB unavailable; using procedural fallback");
+    }
+
     return 1;
+}
+
+void Renderer3D_Release(Renderer3D *r)
+{
+    if (!r) return;
+
+    GLBLoader_Release(r);
+
+    if (r->program) {
+        glDeleteProgram(r->program);
+        r->program = 0;
+    }
+
+    r->position = -1;
+    r->normal = -1;
+    r->mvp = -1;
+    r->model = -1;
+    r->color = -1;
+    r->camera = -1;
 }
 
 void Renderer3D_Draw(Renderer3D*r,const MueangGame*g,int w,int h){
@@ -508,10 +536,8 @@ void Renderer3D_Draw(Renderer3D*r,const MueangGame*g,int w,int h){
     draw_floating_island(r,vp);
     draw_parkour_props(r,vp);
 
-    
-/* Modular Character System */
-Character3D_Draw(r, g, vp, player_y);
-
+    /* Modular Character System */
+    Character3D_Draw(r, g, vp, player_y);
 
     glDisableVertexAttribArray(r->position);
     glDisableVertexAttribArray(r->normal);
