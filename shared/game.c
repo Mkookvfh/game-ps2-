@@ -306,7 +306,16 @@ static void update_npc_ai(MueangGame *game, float dt)
 
         if (n->awareness >= 0.72f)
             n->state = 2;
+/* Guard de-escalation */
+if (n->state == 2 && n->awareness < 0.25f) {
+    n->state = 1;
+    n->attack_timer = 0.0f;
+}
 
+if (n->state == 1 && n->awareness < 0.05f) {
+    n->state = 0;
+    n->attack_timer = 0.0f;
+}
         if (n->state == 2) {
             guard_alerted = 1;
             n->yaw = atan2f(dx, dz);
@@ -445,6 +454,20 @@ static void respawn_player(MueangGame *game)
     MueangPlayer *p = &game->player;
 
     game->carried_body = -1;
+/* Reset guard alert after player respawn */
+for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
+    MueangNPC *n = &game->npcs[i];
+
+    if (n->alive && n->type == 0) {
+        n->awareness = 0.0f;
+        n->state = 0;
+        n->attack_timer = 0.0f;
+    }
+}
+
+game->alert_level = 0.0f;
+game->crowd_blending = 0;
+game->player.detected = 0;
 
     p->x = 0.0f;
     p->z = 0.0f;
