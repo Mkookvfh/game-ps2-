@@ -1,0 +1,71 @@
+
+name: MUEANG ISARA Android Build
+
+on:
+  push:
+    branches:
+      - main
+      - feature/android-ps2-open-world
+    paths:
+      - 'platform/android/**'
+      - 'shared/**'
+      - 'tests/**'
+      - '.github/workflows/android-build.yml'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'platform/android/**'
+      - 'shared/**'
+      - 'tests/**'
+      - '.github/workflows/android-build.yml'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Test game systems
+        run: sh tests/run_android_tests.sh
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+
+
+      - name: Install Android NDK and CMake
+        run: |
+          sdkmanager "ndk;27.0.12077973" "cmake;3.22.1"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build Android APK
+        run: |
+          gradle -p platform/android assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MUEANG-ISARA-Android-APK
+          path: platform/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

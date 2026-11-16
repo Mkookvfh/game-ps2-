@@ -1,0 +1,30 @@
+
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.mueangisara.game'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.mueangisara.game'
+        minSdk 23
+        targetSdk 28
+        versionCode 1
+        versionName '0.1.0'
+
+        externalNativeBuild {
+            cmake {
+                cFlags '-std=c11'
+            }
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path 'src/main/cpp/CMakeLists.txt'
+            version '3.22.1'
+        }
+    }
+}
