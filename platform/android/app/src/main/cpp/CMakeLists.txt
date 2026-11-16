@@ -10,6 +10,7 @@ add_library(mueang_android SHARED
     glb_loader.c
     skeleton.c
     animation.c
+    humanoid_standard.c
     ../../../../../../shared/game.c
 )
 target_include_directories(mueang_android PRIVATE ../../../../../../shared)
