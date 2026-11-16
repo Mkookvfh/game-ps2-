@@ -27,6 +27,14 @@
 #define NPC_DETECTION_RANGE 10.0f
 #define NPC_TAKEDOWN_RANGE 2.25f
 
+/* Synchronization Point */
+#define SYNC_TOWER_X (-22.0f)
+#define SYNC_TOWER_Z (-20.0f)
+#define SYNC_RAMP_START_X (-34.0f)
+#define SYNC_RAMP_END_X (-22.0f)
+#define SYNC_TOWER_HEIGHT 13.0f
+#define SYNC_INTERACT_RANGE 2.8f
+
 static float clampf(float v, float lo, float hi)
 {
     if (v < lo) return lo;
@@ -45,6 +53,36 @@ static float stair_rise(void)
 {
     return (ISLAND_TOP - terrain_height(0.0f, STAIR_START_Z))
          / (float)STAIR_COUNT;
+}
+
+static float sync_tower_base(void)
+{
+    return terrain_height(SYNC_TOWER_X, SYNC_TOWER_Z);
+}
+
+static float sync_ramp_height(float x, float z)
+{
+    if (z < SYNC_TOWER_Z - 1.25f ||
+        z > SYNC_TOWER_Z + 1.25f ||
+        x < SYNC_RAMP_START_X ||
+        x > SYNC_RAMP_END_X)
+        return -10000.0f;
+
+    float t = (x - SYNC_RAMP_START_X) /
+              (SYNC_RAMP_END_X - SYNC_RAMP_START_X);
+
+    return terrain_height(x, z) + t * SYNC_TOWER_HEIGHT;
+}
+
+static int near_sync_tower_top(float x, float z, float y)
+{
+    float dx = x - SYNC_TOWER_X;
+    float dz = z - SYNC_TOWER_Z;
+    float d2 = dx * dx + dz * dz;
+    float top = sync_tower_base() + SYNC_TOWER_HEIGHT;
+
+    return d2 <= SYNC_INTERACT_RANGE * SYNC_INTERACT_RANGE &&
+           y >= top - 1.2f;
 }
 
 static int in_haystack(float x, float z)
@@ -340,6 +378,28 @@ float MueangGame_GroundHeight(float x, float z)
         if (water_top > ground) ground = water_top;
     }
 
+    /* Synchronization Point ramp collision. */
+    {
+        float ramp = sync_ramp_height(x, z);
+
+        if (ramp > ground)
+            ground = ramp;
+    }
+
+    /* Synchronization Point tower platform collision. */
+    {
+        float dx = x - SYNC_TOWER_X;
+        float dz = z - SYNC_TOWER_Z;
+
+        if (dx * dx + dz * dz <= 3.2f * 3.2f) {
+            float tower_top =
+                sync_tower_base() + SYNC_TOWER_HEIGHT;
+
+            if (tower_top > ground)
+                ground = tower_top;
+        }
+    }
+
     return ground;
 }
 
@@ -438,6 +498,32 @@ void MueangGame_Update(
 
     p->jump_was_down = jump_pressed;
     p->action_was_down = action_pressed;
+
+    /* Synchronization camera timer. */
+    if (game->sync_timer > 0.0f) {
+        game->sync_timer -= dt;
+
+        if (game->sync_timer <= 0.0f) {
+            game->sync_timer = 0.0f;
+            game->sync_active = 0;
+        }
+    }
+
+    /* Detect when player reaches the tower summit. */
+    game->sync_prompt =
+        (!game->sync_unlocked &&
+         p->grounded &&
+         near_sync_tower_top(
+             p->x, p->z, p->surface_y
+         ));
+
+    /* Synchronization interaction takes priority. */
+    if (action_edge && game->sync_prompt) {
+        game->sync_unlocked = 1;
+        game->sync_active = 1;
+        game->sync_timer = 5.0f;
+        action_edge = 0;
+    }
 
     /* Combat animation timer. */
     if (p->combat_timer > 0.0f) {
@@ -613,13 +699,6 @@ void MueangGame_Update(
     if (p->crouching) speed *= 0.55f;
 
     if (p->traversal_mode == 3) {
-        float t = clampf(
-            (2.2f - p->zipline_timer) / 2.2f,
-            0.0f, 1.0f
-        );
-
-        (void)t;
-
         p->x += 4.55f * dt;
         p->z += 7.2f * dt;
         p->jump_height -= 1.2f * dt;
@@ -698,63 +777,4 @@ void MueangGame_Update(
 
         if (p->traversal_mode != 2 &&
             p->traversal_mode != 3) {
-            p->jump_height += p->vertical_velocity * dt;
-        }
-
-        float world_y = p->surface_y + p->jump_height;
-
-        int still_over_launch_island =
-            p->leap_of_faith &&
-            new_floor > p->fall_start_y - 2.0f;
-
-        if (p->traversal_mode == 1) {
-            /* Wall run remains above the ground. */
-
-        } else if (!still_over_launch_island &&
-                   world_y <= new_floor) {
-
-            float fall_distance =
-                p->fall_start_y - new_floor;
-
-            int hay = in_haystack(p->x, p->z);
-            int water = in_water(p->x, p->z);
-            int controlled = p->descent_active;
-
-            p->safe_landing = hay || water || controlled;
-
-            p->surface_y = new_floor;
-            p->jump_height = 0.0f;
-            p->vertical_velocity = 0.0f;
-            p->grounded = 1;
-            p->descent_active = 0;
-            p->leap_of_faith = 0;
-            p->leap_timer = 0.0f;
-
-            p->traversal_mode = 0;
-            p->grapple_timer = 0.0f;
-            p->zipline_timer = 0.0f;
-            p->pole_vault_timer = 0.0f;
-
-            if (p->safe_landing) {
-                p->roll_timer = controlled ? 0.55f : 0.45f;
-
-            } else if (fall_distance > 8.0f) {
-                respawn_player(game);
-
-            } else if (fall_distance > 1.5f) {
-                p->roll_timer = 0.55f;
-            }
-
-        } else if (world_y < -12.0f) {
-            respawn_player(game);
-        }
-    }
-
-    if (p->traversal_mode == 4) {
-        if (p->pole_vault_timer <= 0.0f && !p->grounded)
-            p->traversal_mode = 0;
-    }
-
-    /* NPC AI runs after player movement. */
-    update_npc_ai(game, dt);
-}
+            p->jump_height += p->verti
