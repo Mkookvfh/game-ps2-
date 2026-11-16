@@ -777,4 +777,63 @@ void MueangGame_Update(
 
         if (p->traversal_mode != 2 &&
             p->traversal_mode != 3) {
-            p->jump_height += p->verti
+            p->jump_height += p->vertical_velocity * dt;
+        }
+
+        float world_y = p->surface_y + p->jump_height;
+
+        int still_over_launch_island =
+            p->leap_of_faith &&
+            new_floor > p->fall_start_y - 2.0f;
+
+        if (p->traversal_mode == 1) {
+            /* Wall run remains above the ground. */
+
+        } else if (!still_over_launch_island &&
+                   world_y <= new_floor) {
+
+            float fall_distance =
+                p->fall_start_y - new_floor;
+
+            int hay = in_haystack(p->x, p->z);
+            int water = in_water(p->x, p->z);
+            int controlled = p->descent_active;
+
+            p->safe_landing = hay || water || controlled;
+
+            p->surface_y = new_floor;
+            p->jump_height = 0.0f;
+            p->vertical_velocity = 0.0f;
+            p->grounded = 1;
+            p->descent_active = 0;
+            p->leap_of_faith = 0;
+            p->leap_timer = 0.0f;
+
+            p->traversal_mode = 0;
+            p->grapple_timer = 0.0f;
+            p->zipline_timer = 0.0f;
+            p->pole_vault_timer = 0.0f;
+
+            if (p->safe_landing) {
+                p->roll_timer = controlled ? 0.55f : 0.45f;
+
+            } else if (fall_distance > 8.0f) {
+                respawn_player(game);
+
+            } else if (fall_distance > 1.5f) {
+                p->roll_timer = 0.55f;
+            }
+
+        } else if (world_y < -12.0f) {
+            respawn_player(game);
+        }
+    }
+
+    if (p->traversal_mode == 4) {
+        if (p->pole_vault_timer <= 0.0f && !p->grounded)
+            p->traversal_mode = 0;
+    }
+
+    /* NPC AI runs after player movement. */
+    update_npc_ai(game, dt);
+}
