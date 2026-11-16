@@ -19,6 +19,7 @@ add_library(mueang_android SHARED
     native_main.c
     renderer3d.c
     character3d.c
+    glb_loader.c
     ../../../../../../shared/game.c
 )
 
