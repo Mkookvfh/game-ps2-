@@ -84,6 +84,24 @@ static double get_time_seconds(void)
    SHADER
    ========================================================= */
 
+
+/* =========================================================
+   OPENGL ES 2.0 SHADERS
+   ========================================================= */
+
+static const char *VS =
+    "attribute vec4 aPosition;\n"
+    "void main() {\n"
+    "    gl_Position = vec4(aPosition.xyz, 1.0);\n"
+    "}\n";
+
+static const char *FS =
+    "precision mediump float;\n"
+    "uniform vec4 uColor;\n"
+    "void main() {\n"
+    "    gl_FragColor = uColor;\n"
+    "}\n";
+
 static GLuint compile_shader(GLenum type, const char *src)
 {
     GLuint shader = glCreateShader(type);
