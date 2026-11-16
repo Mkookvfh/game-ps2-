@@ -1,9 +1,12 @@
+
 #include "character3d.h"
+#include "glb_loader.h"
 #include <math.h>
 
-/* MUEANG ISARA - Animation Pack 04 + Cape Attachment Fix
- * Procedural ES 2.0 character poses built from the existing modular cube mesh.
- * Local +Z is forward; local -Z is behind the character.
+/* MUEANG ISARA - Character GLB Integration
+ * NPCs keep procedural models.
+ * Main player uses Main Assassin GLB when loaded.
+ * Procedural player remains as fallback.
  */
 
 #define PI 3.14159265f
@@ -12,6 +15,7 @@ static void ident(float *m) {
     for (int i=0;i<16;i++) m[i]=0.0f;
     m[0]=m[5]=m[10]=m[15]=1.0f;
 }
+
 static void mul(float *o,const float *a,const float *b) {
     float t[16];
     for(int c=0;c<4;c++) for(int r=0;r<4;r++) {
@@ -20,6 +24,7 @@ static void mul(float *o,const float *a,const float *b) {
     }
     for(int i=0;i<16;i++) o[i]=t[i];
 }
+
 static void make_cube(float *v) {
     static const float p[8][3]={
         {-.5f,-.5f,-.5f},{.5f,-.5f,-.5f},
@@ -43,6 +48,7 @@ static void make_cube(float *v) {
         for(int j=0;j<3;j++) v[k++]=n[a][j];
     }
 }
+
 static void draw_part(Renderer3D *r,const float *vp,const float *cube,
     float rx,float ry,float rz,float lx,float ly,float lz,
     float sx,float sy,float sz,float yaw,float cr,float cg,float cb) {
@@ -63,8 +69,10 @@ static void draw_part(Renderer3D *r,const float *vp,const float *cube,
     glDrawArrays(GL_TRIANGLES,0,36);
 }
 
-/* pose: 0 idle/walk, 1 jump/fall, 2 roll, 3 slide,
- * 4 wallrun, 5 grapple/zipline, 6 pole vault, 7 combat */
+/* pose:
+ * 0 idle/walk, 1 jump/fall, 2 roll, 3 slide,
+ * 4 wallrun, 5 grapple/zipline, 6 pole vault, 7 combat
+ */
 static void human(Renderer3D *r,const float *vp,const float *cube,
     float x,float y,float z,float yaw,int kind,int variant,int crouch,
     int moving,float phase,int airborne,int pose,float action_t) {
@@ -94,7 +102,7 @@ static void human(Renderer3D *r,const float *vp,const float *cube,
     float leg_zl=s*.12f, leg_zr=-leg_zl;
     float cape_sway=moving?sinf(phase*.72f)*.045f:0.0f;
     float cape_lift=moving?fabsf(s)*.035f:0.0f;
-    float head_y=1.78f, arm_y=0.98f, leg_y=.31f;
+    float head_y=1.78f, arm_y=.98f, leg_y=.31f;
     float jump_offset=airborne?.10f:0.0f;
 
     if(crouch) { torso_y=.78f; torso_h=.72f; head_y=1.28f; arm_y=.72f; }
@@ -123,13 +131,9 @@ static void human(Renderer3D *r,const float *vp,const float *cube,
         draw_part(r,vp,cube,x,y,z,0,head_y+.14f+jump_offset,-.02f,
             .40f,.30f,.37f,yaw,.18f,.17f,.16f);
 
-        /* Shoulder attachment: overlaps the torso slightly so the cape
-           visibly starts at the upper back instead of hovering behind it. */
         draw_part(r,vp,cube,x,y,z,0,torso_y+.34f+bob,-.195f,
             .52f,.24f,.12f,yaw,.38f,.025f,.035f);
 
-        /* Cape panel is pushed into the back surface by a small amount.
-           The top stays anchored; only the lower cloth sways and lifts. */
         draw_part(r,vp,cube,x,y,z,cape_sway,torso_y-.02f+bob+cape_lift*.35f,
             -.205f,.60f,crouch?.94f:1.10f,.13f,yaw,cape[0],cape[1],cape[2]);
         draw_part(r,vp,cube,x,y,z,cape_sway*1.25f,torso_y-.48f+bob+cape_lift,
@@ -170,40 +174,94 @@ static void human(Renderer3D *r,const float *vp,const float *cube,
 void Character3D_Draw(Renderer3D *r,const MueangGame *g,
                       const float *vp,float player_y) {
     if(!r || !g || !vp) return;
-    float cube[216]; make_cube(cube);
 
+    float cube[216];
+    make_cube(cube);
+
+    /* NPCs continue using the existing procedural character system. */
     for(int i=0;i<MUEANG_NPC_COUNT;i++) {
         const MueangNPC *n=&g->npcs[i];
         if(!n->alive || n->state==3) continue;
+
         float gy=MueangGame_GroundHeight(n->x,n->z);
         int guard=n->type==0;
         int moving=(n->state==2) || (n->type==1);
         float phase=n->patrol_timer*(moving?7.0f:0.0f);
-        human(r,vp,cube,n->x,gy,n->z,n->yaw,guard?1:2,i*3,
-              0,moving,phase,0,0,0.0f);
+
+        human(r,vp,cube,n->x,gy,n->z,n->yaw,
+              guard?1:2,i*3,0,moving,phase,0,0,0.0f);
     }
 
     const MueangPlayer *p=&g->player;
-    static float last_x=0.0f,last_z=0.0f,player_phase=0.0f;
+
+    static float last_x=0.0f;
+    static float last_z=0.0f;
+    static float player_phase=0.0f;
     static int valid=0;
-    float dx=p->x-last_x,dz=p->z-last_z;
+
+    float dx=p->x-last_x;
+    float dz=p->z-last_z;
     float travelled=sqrtf(dx*dx+dz*dz);
-    if(!valid) { last_x=p->x; last_z=p->z; valid=1; travelled=0.0f; }
+
+    if(!valid) {
+        last_x=p->x;
+        last_z=p->z;
+        valid=1;
+        travelled=0.0f;
+    }
+
     int moving=travelled>0.0008f;
-    if(moving) player_phase+=travelled*8.0f;
-    last_x=p->x; last_z=p->z;
+
+    if(moving)
+        player_phase+=travelled*8.0f;
+
+    last_x=p->x;
+    last_z=p->z;
 
     int pose=0;
-    if(p->attacking || p->air_assassination || p->ledge_takedown) pose=7;
-    else if(p->roll_timer>0.0f) pose=2;
-    else if(p->slide_timer>0.0f) pose=3;
-    else if(p->traversal_mode==1) pose=4;
-    else if(p->traversal_mode==2 || p->traversal_mode==3) pose=5;
-    else if(p->traversal_mode==4) pose=6;
-    else if(!p->grounded) pose=1;
+
+    if(p->attacking || p->air_assassination || p->ledge_takedown)
+        pose=7;
+    else if(p->roll_timer>0.0f)
+        pose=2;
+    else if(p->slide_timer>0.0f)
+        pose=3;
+    else if(p->traversal_mode==1)
+        pose=4;
+    else if(p->traversal_mode==2 || p->traversal_mode==3)
+        pose=5;
+    else if(p->traversal_mode==4)
+        pose=6;
+    else if(!p->grounded)
+        pose=1;
 
     float phase=player_phase;
-    if(pose!=0) phase+=p->combat_timer*5.0f;
-    human(r,vp,cube,p->x,player_y,p->z,p->yaw,0,0,p->crouching,
-          moving,phase,!p->grounded,pose,p->combat_timer);
+
+    if(pose!=0)
+        phase+=p->combat_timer*5.0f;
+
+    /*
+     * Draw the imported main assassin model.
+     * The GLB model is static geometry, so only the whole model
+     * follows player position, rotation and a small walking bob.
+     */
+    float model_bob=0.0f;
+
+    if(moving && pose==0 && !p->crouching)
+        model_bob=fabsf(sinf(phase))*.025f;
+
+    if(!GLBLoader_Draw(
+            r,
+            vp,
+            p->x,
+            player_y,
+            p->z,
+            p->yaw,
+            model_bob)) {
+
+        /* Fallback if the GLB asset could not be loaded. */
+        human(r,vp,cube,p->x,player_y,p->z,p->yaw,
+              0,0,p->crouching,moving,phase,
+              !p->grounded,pose,p->combat_timer);
+    }
 }
