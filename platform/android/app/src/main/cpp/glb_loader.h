@@ -1,7 +1,6 @@
 #ifndef MUEANG_GLB_LOADER_H
 #define MUEANG_GLB_LOADER_H
 #include <android/asset_manager.h>
-#include <GLES2/gl2.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
