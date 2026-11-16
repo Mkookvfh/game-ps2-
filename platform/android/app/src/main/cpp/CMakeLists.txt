@@ -13,6 +13,7 @@ add_library(mueang_android SHARED
     humanoid_standard.c
     humanoid_retarget.c
     humanoid_clip.c
+    glb_anim_importer.c
     ../../../../../../shared/game.c
 )
 target_include_directories(mueang_android PRIVATE ../../../../../../shared)
