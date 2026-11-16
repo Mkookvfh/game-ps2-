@@ -7,11 +7,13 @@
 #include <time.h>
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "renderer3d.h"
 #include "game.h"
 #include "resource_system.h"
 #include "ui_renderer.h"
+#include "progress.h"
 
 #define LOG_TAG "MUEANG_ISARA"
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
@@ -38,6 +40,10 @@ typedef struct {
 
     int inventory_selected;
     int inventory_category;
+    int last_craft_recipe;
+    int last_craft_result;
+    char progress_path[1024];
+    float save_timer;
 
     int left_pointer;
     int right_pointer;
@@ -61,6 +67,21 @@ typedef struct {
     float look_dy;
 
 } GameState;
+
+static void clear_touch_input(GameState *s)
+{
+    s->left_pointer = INVALID_POINTER_ID;
+    s->right_pointer = INVALID_POINTER_ID;
+    s->jump_pointer = INVALID_POINTER_ID;
+    s->sprint_pointer = INVALID_POINTER_ID;
+    s->action_pointer = INVALID_POINTER_ID;
+    s->harvest_pointer = INVALID_POINTER_ID;
+    s->inventory_pointer = INVALID_POINTER_ID;
+    s->move_x = 0.0f;
+    s->move_y = 0.0f;
+    s->look_dx = 0.0f;
+    s->look_dy = 0.0f;
+}
 
 
 /* =========================================================
@@ -336,6 +357,12 @@ static unsigned short inventory_glyph(char c)
         case 'I': return 0x7497;
         case 'F': return 0x3924;
         case 'R': return 0x5B6A;
+        case 'B': return 0x6BAE;
+        case 'P': return 0x7BE4;
+        case 'T': return 0x7492;
+        case 'U': return 0x5B6F;
+        case 'E': return 0x7997;
+        case 'D': return 0x6B6E;
 
         case '0': return 0x7B6F;
         case '1': return 0x7497;
@@ -396,11 +423,17 @@ static void draw_inventory_number(
     float y)
 {
     if (value < 0) value = 0;
-    if (value > 99) value = 99;
+    if (value > 999) value = 999;
+
+    if (value >= 100) {
+        draw_inventory_char(s, (char)('0' + value / 100), x, y,
+                            0.018f, 1.0f, 1.0f, 1.0f);
+        x += 0.055f;
+    }
 
     draw_inventory_char(
         s,
-        (char)('0' + value / 10),
+        (char)('0' + (value / 10) % 10),
         x,
         y,
         0.018f,
@@ -412,13 +445,19 @@ static void draw_inventory_number(
     draw_inventory_char(
         s,
         (char)('0' + value % 10),
-        x + 0.075f,
+        x + 0.055f,
         y,
         0.018f,
         1.0f,
         1.0f,
         1.0f
     );
+}
+
+static void draw_inventory_text(GameState *s, const char *text, float x, float y)
+{
+    for (; *text; ++text, x += 0.043f)
+        draw_inventory_char(s, *text, x, y, 0.010f, 1.0f, 0.88f, 0.66f);
 }
 
 /* =========================================================
@@ -749,7 +788,7 @@ static void render_inventory_ui(GameState *s)
         );
 
         float fill =
-            0.156f*((float)count/99.0f);
+            0.156f*((float)count/MueangResource_GetCapacity(&s->resources));
 
         if (fill>0.0f) {
 
@@ -825,7 +864,7 @@ static void render_inventory_ui(GameState *s)
     );
 
     float capacity =
-        0.44f*((float)count/99.0f);
+        0.44f*((float)count/MueangResource_GetCapacity(&s->resources));
 
     if (capacity>0.0f) {
 
@@ -837,30 +876,28 @@ static void render_inventory_ui(GameState *s)
         );
     }
 
-    /* Action plates - crafting is not connected yet */
-    draw_rect(
-        s,0.35f,-0.42f,
-        0.57f,-0.29f,
-        0.42f,0.27f,0.12f
-    );
-
-    draw_rect(
-        s,0.61f,-0.42f,
-        0.82f,-0.29f,
-        0.19f,0.14f,0.09f
-    );
-
-    draw_rect(
-        s,0.35f,-0.42f,
-        0.57f,-0.412f,
-        0.78f,0.55f,0.23f
-    );
-
-    draw_rect(
-        s,0.61f,-0.42f,
-        0.82f,-0.412f,
-        0.58f,0.39f,0.17f
-    );
+    /* P: potion, T: tool, B: backpack; letters show ingredient costs. */
+    static const char *labels[MUEANG_RECIPE_COUNT] = {
+        "P H2 F1", "T W3 S2 I1", "B W2 F3"
+    };
+    static const float tops[MUEANG_RECIPE_COUNT] = {-0.15f, -0.28f, -0.41f};
+    for (int i = 0; i < MUEANG_RECIPE_COUNT; ++i) {
+        int result = s->last_craft_recipe == i ? s->last_craft_result : 0;
+        draw_rect(s, 0.35f, tops[i]-0.10f, 0.82f, tops[i],
+                  result < 0 ? 0.45f : 0.22f,
+                  result > 0 ? 0.50f : 0.15f, 0.08f);
+        draw_inventory_text(s, labels[i], 0.37f, tops[i]-0.025f);
+    }
+    draw_inventory_text(s, "P", -0.48f, -0.25f);
+    draw_inventory_number(s, s->resources.potions, -0.42f, -0.25f);
+    draw_inventory_text(s, "T", -0.20f, -0.25f);
+    draw_inventory_number(s, s->resources.tool_level, -0.14f, -0.25f);
+    draw_inventory_text(s, "B", 0.06f, -0.25f);
+    draw_inventory_number(s, s->resources.backpack_level, 0.12f, -0.25f);
+    draw_rect(s,-0.48f,-0.45f,0.18f,-0.34f,0.22f,0.15f,0.08f);
+    draw_inventory_text(s,"USE P",-0.43f,-0.36f);
+    draw_inventory_text(s,"H",-0.10f,-0.36f);
+    draw_inventory_number(s,(int)s->game.player.health,-0.04f,-0.36f);
 }
 
 /* =========================================================
@@ -875,6 +912,7 @@ static void render_scene(
     Renderer3D_Draw(
         &s->renderer,
         &s->game,
+        &s->resources,
         w,
         h
     );
@@ -903,6 +941,19 @@ static void render_scene(
     glDisable(GL_DEPTH_TEST);
 
     glUseProgram(s->program);
+
+    draw_rect(s,-0.20f,0.88f,0.20f,0.93f,0.10f,0.08f,0.08f);
+    draw_rect(s,-0.20f,0.88f,
+              -0.20f + 0.40f * (s->game.player.health / 100.0f),
+              0.93f,0.70f,0.12f,0.10f);
+
+    draw_disc(s,-0.45f,0.75f,0.10f,
+              s->game.sight_active ? 0.2f : 0.12f,0.30f,0.55f);
+    draw_inventory_char(s,'S',-0.465f,0.78f,0.015f,1,1,1);
+    draw_disc(s,-0.14f,0.75f,0.10f,0.38f,0.24f,0.12f);
+    draw_inventory_char(s,'B',-0.155f,0.78f,0.015f,1,1,1);
+    draw_inventory_text(s,"D",0.25f,0.79f);
+    draw_inventory_number(s,s->game.discovered_count,0.31f,0.79f);
 
     /* Movement joystick */
     draw_disc(
@@ -1066,18 +1117,20 @@ static int pick_button(
     int w,
     int h)
 {
-    static const float centers[5][2]={
+    static const float centers[7][2]={
         {0.78f,-0.38f},
         {0.53f,-0.72f},
         {0.53f,-0.38f},
         {0.78f,0.72f},
-        {-0.78f,0.78f}
+        {-0.78f,0.78f},
+        {-0.45f,0.75f},
+        {-0.14f,0.75f}
     };
 
     int best=-1;
     float best_distance=999999.0f;
 
-    for(int i=0;i<5;i++){
+    for(int i=0;i<7;i++){
 
         if(!hit_button(
             x,y,w,h,
@@ -1149,6 +1202,24 @@ static int handle_input(
             float nx=(x/(float)width)*2.0f-1.0f;
             float ny=1.0f-(y/(float)height)*2.0f;
 
+            if (nx >= -0.48f && nx <= 0.18f && ny >= -0.45f && ny <= -0.34f) {
+                if (s->resources.potions > 0 && MueangGame_Heal(&s->game))
+                    --s->resources.potions;
+                return 1;
+            }
+
+            if (nx >= 0.35f && nx <= 0.82f) {
+                static const float tops[MUEANG_RECIPE_COUNT] = {-0.15f, -0.28f, -0.41f};
+                for (int recipe = 0; recipe < MUEANG_RECIPE_COUNT; ++recipe) {
+                    if (ny >= tops[recipe]-0.10f && ny <= tops[recipe]) {
+                        s->last_craft_recipe = recipe;
+                        s->last_craft_result = MueangResource_Craft(
+                            &s->resources, (MueangRecipe)recipe) ? 1 : -1;
+                        return 1;
+                    }
+                }
+            }
+
             /* Close button */
             if(nx>=0.79f && ny>=0.64f){
                 s->inventory_open=0;
@@ -1204,6 +1275,15 @@ static int handle_input(
 
         int pressed_button=
             pick_button(x,y,width,height);
+
+        if (pressed_button == 5) {
+            MueangGame_ToggleSight(&s->game);
+            return 1;
+        }
+        if (pressed_button == 6) {
+            MueangGame_InteractBody(&s->game);
+            return 1;
+        }
 
         /* Inventory button before joystick */
         if(pressed_button==4 &&
@@ -1332,9 +1412,8 @@ static int handle_input(
 
         if(id==s->inventory_pointer){
 
-            s->inventory_pointer=INVALID_POINTER_ID;
-
             s->inventory_open=!s->inventory_open;
+            clear_touch_input(s);
         }
 
         return 1;
@@ -1343,20 +1422,7 @@ static int handle_input(
     /* Cancel all touches */
     if(masked==AMOTION_EVENT_ACTION_CANCEL){
 
-        s->left_pointer=INVALID_POINTER_ID;
-        s->right_pointer=INVALID_POINTER_ID;
-
-        s->jump_pointer=INVALID_POINTER_ID;
-        s->sprint_pointer=INVALID_POINTER_ID;
-        s->action_pointer=INVALID_POINTER_ID;
-        s->harvest_pointer=INVALID_POINTER_ID;
-        s->inventory_pointer=INVALID_POINTER_ID;
-
-        s->move_x=0;
-        s->move_y=0;
-
-        s->look_dx=0;
-        s->look_dy=0;
+        clear_touch_input(s);
 
         return 1;
     }
@@ -1555,16 +1621,19 @@ static void handle_cmd(
             break;
 
         case APP_CMD_TERM_WINDOW:
+            clear_touch_input(s);
             if (s->ready) {
                 destroy_egl(s);
             }
             break;
 
         case APP_CMD_LOST_FOCUS:
-            s->move_x = 0.0f;
-            s->move_y = 0.0f;
-            s->look_dx = 0.0f;
-            s->look_dy = 0.0f;
+            clear_touch_input(s);
+            break;
+
+        case APP_CMD_PAUSE:
+            if (s->progress_path[0])
+                MueangProgress_Save(s->progress_path, &s->game, &s->resources);
             break;
 
         default:
@@ -1586,22 +1655,25 @@ void android_main(struct android_app *app)
     state.surface=EGL_NO_SURFACE;
     state.context=EGL_NO_CONTEXT;
 
-    state.left_pointer=INVALID_POINTER_ID;
-    state.right_pointer=INVALID_POINTER_ID;
-
-    state.jump_pointer=INVALID_POINTER_ID;
-    state.sprint_pointer=INVALID_POINTER_ID;
-    state.action_pointer=INVALID_POINTER_ID;
-    state.harvest_pointer=INVALID_POINTER_ID;
-    state.inventory_pointer=INVALID_POINTER_ID;
+    clear_touch_input(&state);
 
     state.inventory_open=0;
     state.inventory_selected=0;
     state.inventory_category=0;
+    state.last_craft_recipe=-1;
 
     MueangGame_Init(&state.game);
 
     MueangResource_Init(&state.resources);
+
+    if (app->activity->internalDataPath) {
+        int written = snprintf(state.progress_path, sizeof(state.progress_path),
+                               "%s/progress-v1.txt", app->activity->internalDataPath);
+        if (written < 0 || (size_t)written >= sizeof(state.progress_path))
+            state.progress_path[0] = '\0';
+        else
+            MueangProgress_Load(state.progress_path, &state.game, &state.resources);
+    }
 
     app->userData=&state;
 
@@ -1659,8 +1731,9 @@ void android_main(struct android_app *app)
             state.look_dx=0;
             state.look_dy=0;
 
-            /* Existing gameplay update */
-            MueangGame_Update(
+            /* Pause simulation while the inventory is open. */
+            if (!state.inventory_open) {
+                MueangGame_Update(
                 &state.game,
 
                 state.move_x,
@@ -1679,7 +1752,7 @@ void android_main(struct android_app *app)
             );
 
             /* Resource harvesting update */
-            MueangResource_Update(
+                MueangResource_Update(
                 &state.resources,
 
                 state.game.player.x,
@@ -1689,7 +1762,17 @@ void android_main(struct android_app *app)
                 state.harvest_pointer!=INVALID_POINTER_ID,
 
                 dt
-            );
+                );
+            } else {
+                state.game.player.jump_was_down = 0;
+                state.game.player.action_was_down = 0;
+            }
+
+            state.save_timer += dt;
+            if (state.save_timer >= 10.0f && state.progress_path[0]) {
+                MueangProgress_Save(state.progress_path, &state.game, &state.resources);
+                state.save_timer = 0.0f;
+            }
 
             int w=ANativeWindow_getWidth(app->window);
             int h=ANativeWindow_getHeight(app->window);
@@ -1707,5 +1790,7 @@ void android_main(struct android_app *app)
         }
     }
 
+    if (state.progress_path[0])
+        MueangProgress_Save(state.progress_path, &state.game, &state.resources);
     destroy_egl(&state);
 }

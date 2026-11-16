@@ -2,6 +2,7 @@
 #include "character3d.h"
 #include "glb_loader.h"
 #include "animation.h"
+#include "rigged_renderer.h"
 #include <math.h>
 
 /* MUEANG ISARA - Character GLB Integration
@@ -182,7 +183,15 @@ void Character3D_Draw(Renderer3D *r,const MueangGame *g,
     /* NPCs continue using the existing procedural character system. */
     for(int i=0;i<MUEANG_NPC_COUNT;i++) {
         const MueangNPC *n=&g->npcs[i];
-        if(!n->alive || n->state==3) continue;
+        if (!n->alive) {
+            if (!n->body_hidden) {
+                float gy = MueangGame_GroundHeight(n->x,n->z);
+                if (g->carried_body == i) gy = player_y + 0.9f;
+                draw_part(r,vp,cube,n->x,gy,n->z,0,0.16f,0,
+                          .48f,.30f,1.35f,n->yaw,.25f,.23f,.18f);
+            }
+            continue;
+        }
 
         float gy=MueangGame_GroundHeight(n->x,n->z);
         int guard=n->type==0;
@@ -191,6 +200,10 @@ void Character3D_Draw(Renderer3D *r,const MueangGame *g,
 
         human(r,vp,cube,n->x,gy,n->z,n->yaw,
               guard?1:2,i*3,0,moving,phase,0,0,0.0f);
+        if (i == 0) {
+            draw_part(r,vp,cube,n->x,gy,n->z,0,2.15f,0,
+                      .30f,.18f,.30f,n->yaw,.90f,.22f,.08f);
+        }
     }
 
     const MueangPlayer *p=&g->player;
@@ -251,7 +264,9 @@ void Character3D_Draw(Renderer3D *r,const MueangGame *g,
     if(moving && pose==0 && !p->crouching)
         model_bob=fabsf(sinf(phase))*.025f;
 
-    if(!GLBLoader_Draw(
+    int animation = (int)Animation_SelectState(p,moving);
+    if(!RiggedRenderer_Draw(vp,p->x,player_y,p->z,p->yaw,animation) &&
+       !GLBLoader_Draw(
         r,
         vp,
         p->x,
@@ -259,7 +274,7 @@ void Character3D_Draw(Renderer3D *r,const MueangGame *g,
         p->z,
         p->yaw,
         model_bob,
-        (int)Animation_SelectState(p,moving),
+        animation,
         phase,
         p->crouching)) {
 

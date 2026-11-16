@@ -26,6 +26,13 @@ typedef enum {
     MUEANG_HARVEST_INVENTORY_FULL
 } MueangHarvestStatus;
 
+typedef enum {
+    MUEANG_RECIPE_POTION = 0,
+    MUEANG_RECIPE_TOOL,
+    MUEANG_RECIPE_BACKPACK,
+    MUEANG_RECIPE_COUNT
+} MueangRecipe;
+
 typedef struct {
     float x;
     float z;
@@ -42,6 +49,9 @@ typedef struct {
     int nearest_node;
     float harvest_progress;
     int last_status;
+    int potions;
+    int tool_level;
+    int backpack_level;
 } MueangResourceSystem;
 
 void MueangResource_Init(MueangResourceSystem *system);
@@ -74,6 +84,10 @@ MueangHarvestStatus MueangResource_GetStatus(
 const char *MueangResource_GetItemName(
     MueangResourceItem item
 );
+
+int MueangResource_GetCapacity(const MueangResourceSystem *system);
+/* Returns 1 only if all ingredients were consumed and the result was added. */
+int MueangResource_Craft(MueangResourceSystem *system, MueangRecipe recipe);
 
 #ifdef __cplusplus
 }

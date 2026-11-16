@@ -134,9 +134,13 @@ void MueangResource_Update(
         }
     }
 
+    int previous_node = system->nearest_node;
     system->nearest_node = find_nearest(
         system, player_x, player_z
     );
+
+    if (previous_node != system->nearest_node)
+        system->harvest_progress = 0.0f;
 
     system->last_status = MUEANG_HARVEST_NONE;
 
@@ -155,7 +159,7 @@ void MueangResource_Update(
     system->last_status = MUEANG_HARVESTING;
 
     system->harvest_progress +=
-        dt / HARVEST_SECONDS;
+        dt / (HARVEST_SECONDS / (1.0f + 0.25f * system->tool_level));
 
     if (system->harvest_progress < 1.0f) return;
 
@@ -165,7 +169,7 @@ void MueangResource_Update(
     int *count = &system->inventory[node->item];
 
     if (*count >
-        MUEANG_RESOURCE_MAX_STACK - node->quantity) {
+        MueangResource_GetCapacity(system) - node->quantity) {
 
         system->harvest_progress = 1.0f;
         system->last_status =
@@ -240,4 +244,36 @@ const char *MueangResource_GetItemName(
         return "Unknown";
 
     return names[item];
+}
+
+int MueangResource_GetCapacity(const MueangResourceSystem *system)
+{
+    return MUEANG_RESOURCE_MAX_STACK + (system ? system->backpack_level * 50 : 0);
+}
+
+int MueangResource_Craft(MueangResourceSystem *system, MueangRecipe recipe)
+{
+    static const int costs[MUEANG_RECIPE_COUNT][MUEANG_RESOURCE_ITEM_COUNT] = {
+        {2, 0, 0, 0, 1}, /* potion */
+        {0, 3, 2, 1, 0}, /* tool */
+        {0, 2, 0, 0, 3}  /* backpack */
+    };
+
+    if (!system || recipe < 0 || recipe >= MUEANG_RECIPE_COUNT)
+        return 0;
+    if ((recipe == MUEANG_RECIPE_POTION && system->potions >= MUEANG_RESOURCE_MAX_STACK) ||
+        (recipe == MUEANG_RECIPE_TOOL && system->tool_level >= 2) ||
+        (recipe == MUEANG_RECIPE_BACKPACK && system->backpack_level >= 2))
+        return 0;
+
+    for (int i = 0; i < MUEANG_RESOURCE_ITEM_COUNT; ++i)
+        if (system->inventory[i] < costs[recipe][i]) return 0;
+
+    for (int i = 0; i < MUEANG_RESOURCE_ITEM_COUNT; ++i)
+        system->inventory[i] -= costs[recipe][i];
+
+    if (recipe == MUEANG_RECIPE_POTION) ++system->potions;
+    else if (recipe == MUEANG_RECIPE_TOOL) ++system->tool_level;
+    else ++system->backpack_level;
+    return 1;
 }

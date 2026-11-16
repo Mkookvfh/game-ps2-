@@ -20,10 +20,13 @@ add_library(mueang_android SHARED
     native_main.c
 ui_renderer.c
 resource_system.c
+progress.c
 renderer3d.c
     character3d.c
 
     glb_loader.c
+    rigged_model.c
+    rigged_renderer.c
     skeleton.c
     animation.c
 

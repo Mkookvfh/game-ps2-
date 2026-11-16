@@ -5,6 +5,7 @@
 #include <string.h>
 #include "character3d.h"
 #include "glb_loader.h"
+#include "rigged_renderer.h"
 
 #define PI 3.14159265f
 #define TERRAIN_SIZE 32
@@ -371,6 +372,42 @@ static void draw_parkour_props(Renderer3D*r,const float*vp){
         6.8f,.24f,6.8f,0,.18f,.48f,.66f);
 }
 
+static void draw_locations(Renderer3D *r, const float *vp)
+{
+    const MueangLocation *waterfall = MueangGame_GetLocation(0);
+    const MueangLocation *temple = MueangGame_GetLocation(1);
+    const MueangLocation *river = MueangGame_GetLocation(3);
+    const MueangLocation *bamboo = MueangGame_GetLocation(4);
+    const MueangLocation *flowers = MueangGame_GetLocation(5);
+    float y = height_at(waterfall->x,waterfall->z);
+    draw_cube(r,vp,waterfall->x,y+3.0f,waterfall->z,5,6,1,0,.30f,.31f,.28f);
+    draw_cube(r,vp,waterfall->x,y+2.8f,waterfall->z-0.6f,2.2f,5.6f,.16f,0,.18f,.65f,.84f);
+    y = height_at(temple->x,temple->z);
+    draw_cube(r,vp,temple->x,y+.25f,temple->z,6,.5f,5,0,.52f,.46f,.36f);
+    for (int i=0;i<4;++i) {
+        float x = temple->x + (i&1 ? 2.0f : -2.0f);
+        float z = temple->z + (i&2 ? 1.5f : -1.5f);
+        draw_cube(r,vp,x,y+1.8f,z,.45f,3.2f,.45f,0,.65f,.59f,.45f);
+    }
+    draw_cube(r,vp,temple->x,y+3.5f,temple->z,5.2f,.45f,4.2f,0,.45f,.40f,.30f);
+    y = height_at(river->x,river->z);
+    draw_cube(r,vp,river->x,y+.15f,river->z,8,.15f,4,0,.08f,.53f,.43f);
+    for (int i=0;i<7;++i) {
+        float x=bamboo->x+(float)(i%3-1)*1.5f;
+        float z=bamboo->z+(float)(i/3-1)*1.5f;
+        y=height_at(x,z);
+        draw_cube(r,vp,x,y+2,z,.16f,4,.16f,0,.25f,.48f,.18f);
+        draw_cube(r,vp,x,y+4,z,.65f,.50f,.65f,0,.17f,.40f,.14f);
+    }
+    for (int i=0;i<8;++i) {
+        float x=flowers->x+(float)(i%4-1)*1.2f;
+        float z=flowers->z+(float)(i/4)*1.5f;
+        y=height_at(x,z);
+        draw_cube(r,vp,x,y+.35f,z,.14f,.7f,.14f,0,.18f,.50f,.12f);
+        draw_cube(r,vp,x,y+.75f,z,.45f,.18f,.45f,0,.85f,.38f,.65f);
+    }
+}
+
 int Renderer3D_Init(Renderer3D*r,AAssetManager *assets){
     if(!r)return 0;
 
@@ -439,6 +476,21 @@ int Renderer3D_Init(Renderer3D*r,AAssetManager *assets){
             "Main Assassin GLB unavailable; using procedural fallback");
     }
 
+    /* Optional rigged GLB; the existing model remains available as fallback. */
+    const char *rig_path = "models/MUEANG_ISARA_Rigged.glb";
+    AAsset *rig_asset = assets ? AAssetManager_open(assets, rig_path, AASSET_MODE_BUFFER) : NULL;
+    int rig_ready = 0;
+    if (rig_asset) {
+        AAsset_close(rig_asset);
+        rig_ready = RiggedRenderer_Init(assets, rig_path);
+        if (!rig_ready)
+            __android_log_print(ANDROID_LOG_WARN, "MUEANG_ISARA",
+                "Custom rigged GLB unsupported or invalid; trying prototype");
+    }
+    if (!rig_ready && !RiggedRenderer_Init(assets, "models/MUEANG_ISARA_Rigged_Prototype.glb"))
+        __android_log_print(ANDROID_LOG_WARN, "MUEANG_ISARA",
+            "Prototype rig unavailable; using existing character");
+
     return 1;
 }
 
@@ -447,6 +499,7 @@ void Renderer3D_Release(Renderer3D *r)
     if (!r) return;
 
     GLBLoader_Release(r);
+    RiggedRenderer_Release();
 
     if (r->program) {
         glDeleteProgram(r->program);
@@ -461,7 +514,8 @@ void Renderer3D_Release(Renderer3D *r)
     r->camera = -1;
 }
 
-void Renderer3D_Draw(Renderer3D*r,const MueangGame*g,int w,int h){
+void Renderer3D_Draw(Renderer3D*r,const MueangGame*g,
+                     const MueangResourceSystem *resources,int w,int h){
     if(!r||!g||!r->program||w<=0||h<=0)return;
 
     glViewport(0,0,w,h);
@@ -532,9 +586,35 @@ void Renderer3D_Draw(Renderer3D*r,const MueangGame*g,int w,int h){
     draw_tree(r,vp,9,13,1);
     draw_tree(r,vp,16,17,1);
 
+    /* Mark the active harvest nodes, using the same positions as gameplay. */
+    if (resources) {
+        static const float colors[MUEANG_RESOURCE_ITEM_COUNT][3] = {
+            {.22f,.75f,.18f}, {.63f,.34f,.12f}, {.65f,.68f,.70f},
+            {.85f,.42f,.12f}, {.80f,.70f,.25f}
+        };
+        for (int i = 0; i < MUEANG_RESOURCE_NODE_COUNT; ++i) {
+            const MueangResourceNode *node = &resources->nodes[i];
+            if (!node->active || node->item < 0 ||
+                node->item >= MUEANG_RESOURCE_ITEM_COUNT) continue;
+            const float *color = colors[node->item];
+            draw_cube(r,vp,node->x,height_at(node->x,node->z)+4.2f,node->z,
+                      .42f,.42f,.42f,PI*.25f,color[0],color[1],color[2]);
+        }
+    }
+
     draw_access_stairs(r,vp);
     draw_floating_island(r,vp);
     draw_parkour_props(r,vp);
+    draw_locations(r,vp);
+
+    if (g->sight_active) {
+        for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
+            const MueangNPC *npc = &g->npcs[i];
+            if (!npc->alive || npc->type != 0) continue;
+            draw_cube(r,vp,npc->x,MueangGame_GroundHeight(npc->x,npc->z)+2.3f,npc->z,
+                      .36f,.36f,.36f,PI*.25f,1.0f,.25f,.12f);
+        }
+    }
 
     /* Modular Character System */
     Character3D_Draw(r, g, vp, player_y);

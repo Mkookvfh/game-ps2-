@@ -49,6 +49,20 @@ static float terrain_height(float x, float z)
          + sinf((x + z) * 0.045f);
 }
 
+static const MueangLocation locations[MUEANG_LOCATION_COUNT] = {
+    {"Hidden Waterfall", -32, 12, 5},
+    {"Ancient Lost Temple", 24, 18, 5},
+    {"Sky Cliffs", 0, 39, 5},
+    {"Emerald River", 20, -20, 5},
+    {"Misty Bamboo Forest", -25, 25, 5},
+    {"Sacred Flower Valley", 30, 25, 5}
+};
+
+const MueangLocation *MueangGame_GetLocation(int index)
+{
+    return index >= 0 && index < MUEANG_LOCATION_COUNT ? &locations[index] : NULL;
+}
+
 static float stair_rise(void)
 {
     return (ISLAND_TOP - terrain_height(0.0f, STAIR_START_Z))
@@ -147,6 +161,8 @@ static int near_island_edge_in_direction(
 
 /* ================= NPC SYSTEM ================= */
 
+static void respawn_player(MueangGame *game);
+
 static float distance_xz(
     float x1, float z1, float x2, float z2)
 {
@@ -182,6 +198,7 @@ static void init_npcs(MueangGame *game)
         n->type = (i < 4) ? 0 : 1;
         n->alive = 1;
         n->state = 0;
+        n->hit_points = i == 0 ? 2 : 1;
     }
 }
 
@@ -222,6 +239,8 @@ static void defeat_npc(MueangGame *game, MueangNPC *npc)
 
     if (npc->type == 0)
         game->enemies_defeated++;
+    if (npc == &game->npcs[0])
+        game->rival_return_timer = 45.0f;
 }
 
 static void update_npc_ai(MueangGame *game, float dt)
@@ -250,6 +269,15 @@ static void update_npc_ai(MueangGame *game, float dt)
         float dx = p->x - n->x;
         float dz = p->z - n->z;
         float d = sqrtf(dx * dx + dz * dz);
+
+        for (int j = 0; j < MUEANG_NPC_COUNT; ++j) {
+            const MueangNPC *body = &game->npcs[j];
+            if (!body->alive && !body->body_hidden &&
+                distance_xz(n->x, n->z, body->x, body->z) < 5.0f) {
+                n->awareness = fmaxf(n->awareness, 0.75f);
+                break;
+            }
+        }
 
         if (d < NPC_DETECTION_RANGE) {
             float detection = 1.0f - d / NPC_DETECTION_RANGE;
@@ -294,6 +322,13 @@ static void update_npc_ai(MueangGame *game, float dt)
                 if (n->attack_timer > 1.2f) {
                     n->attack_timer = 0.0f;
                     p->detected = 1;
+                    p->health -= 20.0f + (i == 0 ? 5.0f * game->rival_rank : 0.0f);
+                    if (p->health <= 0.0f) {
+                        if (i == 0 && game->rival_rank < 5)
+                            ++game->rival_rank;
+                        respawn_player(game);
+                        break;
+                    }
                 }
             } else {
                 n->attack_timer = 0.0f;
@@ -409,6 +444,8 @@ static void respawn_player(MueangGame *game)
 {
     MueangPlayer *p = &game->player;
 
+    game->carried_body = -1;
+
     p->x = 0.0f;
     p->z = 0.0f;
     p->jump_height = 0.0f;
@@ -416,6 +453,7 @@ static void respawn_player(MueangGame *game)
     p->surface_y = MueangGame_GroundHeight(0.0f, 0.0f);
     p->fall_start_y = p->surface_y;
     p->grounded = 1;
+    p->health = 100.0f;
 
     p->descent_active = 0;
     p->leap_of_faith = 0;
@@ -442,10 +480,12 @@ void MueangGame_Init(MueangGame *game)
     if (!game) return;
 
     memset(game, 0, sizeof(*game));
+    game->carried_body = -1;
 
     init_npcs(game);
 
     game->player.move_speed = 3.0f;
+    game->player.health = 100.0f;
     game->player.surface_y =
         MueangGame_GroundHeight(0.0f, 0.0f);
 
@@ -454,6 +494,44 @@ void MueangGame_Init(MueangGame *game)
 
     game->camera_pitch = 0.18f;
     game->camera_distance = 5.0f;
+}
+
+int MueangGame_Heal(MueangGame *game)
+{
+    if (!game || game->player.health >= 100.0f) return 0;
+    game->player.health = fminf(100.0f, game->player.health + 40.0f);
+    return 1;
+}
+
+void MueangGame_ToggleSight(MueangGame *game)
+{
+    if (game) game->sight_active = !game->sight_active;
+}
+
+int MueangGame_InteractBody(MueangGame *game)
+{
+    if (!game || !game->player.grounded) return 0;
+    if (game->carried_body >= 0 && game->carried_body < MUEANG_NPC_COUNT) {
+        MueangNPC *body = &game->npcs[game->carried_body];
+        body->x = game->player.x;
+        body->z = game->player.z;
+        body->body_hidden = in_haystack(body->x, body->z) ||
+                            near_tree(body->x, body->z, 1.8f);
+        game->carried_body = -1;
+        return 1;
+    }
+
+    int best = -1;
+    float distance = 2.0f;
+    for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
+        MueangNPC *body = &game->npcs[i];
+        if (body->alive || body->body_hidden) continue;
+        float d = distance_xz(game->player.x, game->player.z, body->x, body->z);
+        if (d < distance) { distance = d; best = i; }
+    }
+    if (best < 0) return 0;
+    game->carried_body = best;
+    return 1;
 }
 
 /* ================= MAIN UPDATE ================= */
@@ -507,6 +585,25 @@ void MueangGame_Update(
             game->sync_timer = 0.0f;
             game->sync_active = 0;
         }
+    }
+
+    /* A defeated rival returns stronger after the player leaves the area. */
+    MueangNPC *rival = &game->npcs[0];
+    if (!rival->alive && game->rival_return_timer > 0.0f) {
+        game->rival_return_timer = fmaxf(0.0f, game->rival_return_timer - dt);
+    }
+    if (!rival->alive && game->rival_return_timer == 0.0f &&
+        game->carried_body != 0 &&
+        distance_xz(p->x, p->z, rival->patrol_origin_x, rival->patrol_origin_z) > 8.0f) {
+        if (game->rival_rank < 5) ++game->rival_rank;
+        rival->alive = 1;
+        rival->body_hidden = 0;
+        rival->x = rival->patrol_origin_x;
+        rival->z = rival->patrol_origin_z;
+        rival->hit_points = 2 + game->rival_rank;
+        rival->state = 0;
+        rival->awareness = 0.0f;
+        rival->attack_timer = 0.0f;
     }
 
     /* Detect when player reaches the tower summit. */
@@ -576,7 +673,12 @@ void MueangGame_Update(
                 p->ledge_takedown = 1;
             }
 
-            defeat_npc(game, target);
+            if (--target->hit_points <= 0) {
+                defeat_npc(game, target);
+            } else {
+                target->awareness = 1.0f;
+                target->state = 2;
+            }
             action_edge = 0;
         } else if (length < 0.12f && p->grounded) {
             p->stealth_enabled = !p->stealth_enabled;
@@ -832,6 +934,21 @@ void MueangGame_Update(
     if (p->traversal_mode == 4) {
         if (p->pole_vault_timer <= 0.0f && !p->grounded)
             p->traversal_mode = 0;
+    }
+
+    for (int i = 0; i < MUEANG_LOCATION_COUNT; ++i) {
+        const MueangLocation *location = &locations[i];
+        unsigned int bit = 1u << i;
+        if (!(game->discovered_locations & bit) &&
+            distance_xz(p->x, p->z, location->x, location->z) <= location->radius) {
+            game->discovered_locations |= bit;
+            ++game->discovered_count;
+        }
+    }
+
+    if (game->carried_body >= 0 && game->carried_body < MUEANG_NPC_COUNT) {
+        game->npcs[game->carried_body].x = p->x;
+        game->npcs[game->carried_body].z = p->z;
     }
 
     /* NPC AI runs after player movement. */

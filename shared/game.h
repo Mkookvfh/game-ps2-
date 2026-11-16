@@ -7,6 +7,14 @@ extern "C" {
 #endif
 
 #define MUEANG_NPC_COUNT 8
+#define MUEANG_LOCATION_COUNT 6
+
+typedef struct {
+    const char *name;
+    float x;
+    float z;
+    float radius;
+} MueangLocation;
 
 typedef struct {
     float x;
@@ -27,6 +35,7 @@ typedef struct {
     float traversal_cooldown;
     float combat_timer;
     float stealth_timer;
+    float health;
 
     int grounded;
     int jump_was_down;
@@ -60,6 +69,8 @@ typedef struct {
     int type;
     int state;
     int alive;
+    int body_hidden;
+    int hit_points;
 } MueangNPC;
 
 typedef struct {
@@ -73,6 +84,12 @@ typedef struct {
     float alert_level;
     int enemies_defeated;
     int crowd_blending;
+    int sight_active;
+    int carried_body;
+    int rival_rank;
+    float rival_return_timer;
+    unsigned int discovered_locations;
+    int discovered_count;
 
     /* Synchronization Point */
     int sync_unlocked;
@@ -97,6 +114,15 @@ void MueangGame_Update(
 );
 
 float MueangGame_GroundHeight(float x, float z);
+
+/* Restore health by up to 40 points. Returns 1 if health changed. */
+int MueangGame_Heal(MueangGame *game);
+
+void MueangGame_ToggleSight(MueangGame *game);
+/* Picks up a nearby body; a second interaction hides it near hay or trees,
+ * otherwise drops it. Returns 1 when an interaction succeeds. */
+int MueangGame_InteractBody(MueangGame *game);
+const MueangLocation *MueangGame_GetLocation(int index);
 
 #ifdef __cplusplus
 }
