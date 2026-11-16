@@ -18,6 +18,7 @@ target_include_directories(app_glue PUBLIC
 add_library(mueang_android SHARED
 
     native_main.c
+    resource_system.c
     renderer3d.c
     character3d.c
 
