@@ -1,4 +1,3 @@
-
 #include <android_native_app_glue.h>
 #include <android/log.h>
 #include <android/asset_manager.h>
@@ -38,6 +37,7 @@ typedef struct {
     MueangResourceSystem resources;
 
     int inventory_selected;
+    int inventory_category;
 
     int left_pointer;
     int right_pointer;
@@ -511,6 +511,39 @@ static void render_resource_ui(GameState *s)
    INVENTORY PANEL
    ========================================================= */
 
+/* =========================================================
+   INVENTORY CATEGORY FILTER
+   Resource IDs are defined in resource_system.h:
+   HERB=0, WOOD=1, STONE=2, IRON_ORE=3, FIBER=4.
+   ========================================================= */
+
+static int inventory_category_item(int category, int slot)
+{
+    static const int items[4][5] = {
+        {0, 1, 2, 3, 4},       /* All */
+        {0, 4, -1, -1, -1},    /* Nature */
+        {1, -1, -1, -1, -1},   /* Construction */
+        {2, 3, -1, -1, -1}     /* Minerals */
+    };
+
+    if (category < 0 || category >= 4 ||
+        slot < 0 || slot >= 5) {
+        return -1;
+    }
+
+    return items[category][slot];
+}
+
+static int inventory_first_item(int category)
+{
+    for (int slot = 0; slot < 5; ++slot) {
+        int item = inventory_category_item(category, slot);
+        if (item >= 0) return item;
+    }
+
+    return 0;
+}
+
 static void render_inventory_ui(GameState *s)
 {
     /* Inventory button */
@@ -532,7 +565,6 @@ static void render_inventory_ui(GameState *s)
     );
 
     if (!s->inventory_open) return;
-
     /* Main panel */
     draw_rect(
         s,-0.94f,-0.80f,
@@ -602,7 +634,7 @@ static void render_inventory_ui(GameState *s)
     };
 
     const char tab_label[4] = {
-        'I','W','S','F'
+        'I','H','W','S'
     };
 
     for (int i=0;i<4;i++) {
@@ -611,9 +643,9 @@ static void render_inventory_ui(GameState *s)
             s,
             -0.875f,tab_y[i]-0.060f,
             -0.675f,tab_y[i]+0.060f,
-            i==0?0.42f:0.105f,
-            i==0?0.27f:0.075f,
-            i==0?0.11f:0.045f
+            i==s->inventory_category?0.42f:0.105f,
+            i==s->inventory_category?0.27f:0.075f,
+            i==s->inventory_category?0.11f:0.045f
         );
 
         draw_rect(
@@ -654,11 +686,16 @@ static void render_inventory_ui(GameState *s)
 
     for (int i=0;i<5;i++) {
 
+        int item = inventory_category_item(
+            s->inventory_category, i
+        );
+        if (item < 0) continue;
+
         float x=sx[i];
         float y=sy[i];
 
         int selected =
-            (s->inventory_selected==i);
+            (s->inventory_selected==item);
 
         draw_rect(
             s,
@@ -680,14 +717,14 @@ static void render_inventory_ui(GameState *s)
             s,
             x,y+0.020f,
             0.050f,
-            rgb[i][0],
-            rgb[i][1],
-            rgb[i][2]
+            rgb[item][0],
+            rgb[item][1],
+            rgb[item][2]
         );
 
         draw_inventory_char(
             s,
-            glyph[i],
+            glyph[item],
             x-0.012f,y+0.036f,
             0.012f,
             0.98f,0.88f,0.68f
@@ -696,7 +733,7 @@ static void render_inventory_ui(GameState *s)
         int count =
             MueangResource_GetCount(
                 &s->resources,
-                (MueangResourceItem)i
+                (MueangResourceItem)item
             );
 
         draw_inventory_number(
@@ -1098,7 +1135,6 @@ static int handle_input(
     int height=ANativeWindow_getHeight(app->window);
 
     if(width<=0||height<=0)return 1;
-
     /* Finger down */
     if(masked==AMOTION_EVENT_ACTION_DOWN ||
        masked==AMOTION_EVENT_ACTION_POINTER_DOWN){
@@ -1114,23 +1150,53 @@ static int handle_input(
             float ny=1.0f-(y/(float)height)*2.0f;
 
             /* Close button */
-            if(nx>0.78f && ny>0.62f){
-
+            if(nx>=0.79f && ny>=0.64f){
                 s->inventory_open=0;
+                return 1;
+            }
 
-            } else if(
-                nx>-0.60f &&
-                nx<0.25f &&
-                ny>-0.04f &&
-                ny<0.50f){
+            /* Category rail touch targets */
+            static const float category_y[4] = {
+                0.50f, 0.33f, 0.16f, -0.01f
+            };
 
-                int col=(int)((nx+0.60f)/0.29f);
-                int row=(ny<0.225f)?1:0;
+            if(nx>=-0.91f && nx<=-0.65f){
+                for(int category=0; category<4; ++category){
+                    if(ny>=category_y[category]-0.075f &&
+                       ny<=category_y[category]+0.075f){
 
-                int selected=row*3+col;
+                        s->inventory_category=category;
+                        s->inventory_selected=
+                            inventory_first_item(category);
 
-                if(selected>=0 && selected<5)
-                    s->inventory_selected=selected;
+                        return 1;
+                    }
+                }
+            }
+
+            /* Item slot touch targets; match render positions */
+            static const float slot_x[5] = {
+                -0.47f,-0.18f,0.11f,-0.47f,-0.18f
+            };
+            static const float slot_y[5] = {
+                0.37f,0.37f,0.37f,0.08f,0.08f
+            };
+
+            for(int slot=0; slot<5; ++slot){
+                int item=inventory_category_item(
+                    s->inventory_category, slot
+                );
+
+                if(item<0) continue;
+
+                if(nx>=slot_x[slot]-0.115f &&
+                   nx<=slot_x[slot]+0.115f &&
+                   ny>=slot_y[slot]-0.12f &&
+                   ny<=slot_y[slot]+0.12f){
+
+                    s->inventory_selected=item;
+                    return 1;
+                }
             }
 
             return 1;
@@ -1531,6 +1597,7 @@ void android_main(struct android_app *app)
 
     state.inventory_open=0;
     state.inventory_selected=0;
+    state.inventory_category=0;
 
     MueangGame_Init(&state.game);
 
