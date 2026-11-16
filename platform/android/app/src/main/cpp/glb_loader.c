@@ -10,7 +10,9 @@
 
 #define GLB_PART_COUNT 27
 #define GLB_FLOATS_PER_VERTEX 6
-#define GLB_INDEX_SIZE 2
+
+/* GLB accessors use UNSIGNED_INT (32-bit) indices. */
+#define GLB_INDEX_SIZE 4
 
 typedef struct {
     uint32_t position_offset;
@@ -73,13 +75,6 @@ static uint32_t read_u32(const unsigned char *p)
         | ((uint32_t)p[1] << 8)
         | ((uint32_t)p[2] << 16)
         | ((uint32_t)p[3] << 24);
-}
-
-/* GLB model uses UNSIGNED_SHORT indices (16-bit). */
-static uint16_t read_u16(const unsigned char *p)
-{
-    return (uint16_t)p[0]
-        | ((uint16_t)p[1] << 8);
 }
 
 static void matrix_identity(float *m)
@@ -164,9 +159,15 @@ static int build_part(
 
     for (uint32_t i = 0; i < info->index_count; i += 3) {
 
-        uint32_t ia = read_u16(indices + i * GLB_INDEX_SIZE);
-        uint32_t ib = read_u16(indices + (i + 1) * GLB_INDEX_SIZE);
-        uint32_t ic = read_u16(indices + (i + 2) * GLB_INDEX_SIZE);
+        /* Correctly read 32-bit unsigned GLB indices. */
+        uint32_t ia = read_u32(
+            indices + (size_t)i * GLB_INDEX_SIZE);
+
+        uint32_t ib = read_u32(
+            indices + (size_t)(i + 1) * GLB_INDEX_SIZE);
+
+        uint32_t ic = read_u32(
+            indices + (size_t)(i + 2) * GLB_INDEX_SIZE);
 
         if (ia >= info->vertex_count ||
             ib >= info->vertex_count ||
@@ -177,9 +178,9 @@ static int build_part(
 
         float a[3], b[3], c[3];
 
-        memcpy(a, positions + ia * 12, 12);
-        memcpy(b, positions + ib * 12, 12);
-        memcpy(c, positions + ic * 12, 12);
+        memcpy(a, positions + (size_t)ia * 12, 12);
+        memcpy(b, positions + (size_t)ib * 12, 12);
+        memcpy(c, positions + (size_t)ic * 12, 12);
 
         float ux = b[0] - a[0];
         float uy = b[1] - a[1];
