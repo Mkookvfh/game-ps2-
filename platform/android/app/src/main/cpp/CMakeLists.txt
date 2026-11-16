@@ -11,6 +11,7 @@ add_library(mueang_android SHARED
     skeleton.c
     animation.c
     humanoid_standard.c
+    humanoid_retarget.c
     ../../../../../../shared/game.c
 )
 target_include_directories(mueang_android PRIVATE ../../../../../../shared)
