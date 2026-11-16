@@ -12,6 +12,7 @@
 #include "renderer3d.h"
 #include "game.h"
 #include "resource_system.h"
+#include "ui_renderer.h"
 
 #define LOG_TAG "MUEANG_ISARA"
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
@@ -33,7 +34,10 @@ typedef struct {
 
     MueangGame game;
     Renderer3D renderer;
+    UIRenderer ui_renderer;
     MueangResourceSystem resources;
+
+    int inventory_selected;
 
     int left_pointer;
     int right_pointer;
@@ -57,6 +61,8 @@ typedef struct {
     float look_dy;
 
 } GameState;
+
+static double get_time_seconds(void);
 
 static const char *VS =
     "attribute vec3 aPosition;"
@@ -266,8 +272,6 @@ static void draw_disc(
     );
 }
 
-/* Rectangle using two triangles */
-
 static void draw_rect(
     GameState *s,
     float x1,
@@ -416,68 +420,38 @@ static void render_resource_ui(GameState *s)
     float progress =
         MueangResource_GetProgress(&s->resources);
 
-    /* Harvest button */
-
     draw_disc(
-        s,
-        0.78f,
-        0.72f,
-        0.18f,
-        0.07f,
-        0.07f,
-        0.07f
+        s,0.78f,0.72f,0.18f,
+        0.07f,0.07f,0.07f
     );
 
     draw_disc(
-        s,
-        0.78f,
-        0.72f,
-        0.15f,
+        s,0.78f,0.72f,0.15f,
         near_resource ? 0.10f : 0.25f,
         near_resource ? 0.75f : 0.25f,
         near_resource ? 0.25f : 0.25f
     );
 
     draw_disc(
-        s,
-        0.765f,
-        0.735f,
-        0.035f,
-        0.85f,
-        1.0f,
-        0.85f
+        s,0.765f,0.735f,0.035f,
+        0.85f,1.0f,0.85f
     );
 
     draw_disc(
-        s,
-        0.795f,
-        0.705f,
-        0.025f,
-        0.85f,
-        1.0f,
-        0.85f
+        s,0.795f,0.705f,0.025f,
+        0.85f,1.0f,0.85f
     );
 
     if (harvesting) {
 
         draw_disc(
-            s,
-            0.78f,
-            0.72f,
-            0.17f,
-            0.95f,
-            0.85f,
-            0.15f
+            s,0.78f,0.72f,0.17f,
+            0.95f,0.85f,0.15f
         );
 
         draw_disc(
-            s,
-            0.78f,
-            0.72f,
-            0.13f,
-            0.12f,
-            0.55f,
-            0.18f
+            s,0.78f,0.72f,0.13f,
+            0.12f,0.55f,0.18f
         );
     }
 
@@ -487,13 +461,9 @@ static void render_resource_ui(GameState *s)
 
         draw_rect(
             s,
-            0.55f,
-            0.48f,
-            0.98f,
-            0.55f,
-            0.08f,
-            0.08f,
-            0.08f
+            0.55f,0.48f,
+            0.98f,0.55f,
+            0.08f,0.08f,0.08f
         );
 
         float fill_width = 0.43f * progress;
@@ -523,146 +493,316 @@ static void render_resource_ui(GameState *s)
 static void render_inventory_ui(GameState *s)
 {
     /* Inventory button */
-
     draw_disc(
-        s,
-        -0.78f,
-        0.78f,
-        0.105f,
-        0.08f,
-        0.08f,
-        0.08f
+        s,-0.78f,0.78f,0.105f,
+        0.025f,0.025f,0.020f
     );
 
     draw_disc(
-        s,
-        -0.78f,
-        0.78f,
-        0.085f,
-        0.12f,
-        0.45f,
-        0.75f
+        s,-0.78f,0.78f,0.087f,
+        0.42f,0.29f,0.12f
     );
 
     draw_inventory_char(
-        s,
-        'I',
-        -0.805f,
-        0.815f,
+        s,'I',
+        -0.805f,0.815f,
         0.018f,
-        1.0f,
-        1.0f,
-        1.0f
+        1.0f,0.86f,0.58f
     );
 
-    if (!s->inventory_open)
-        return;
+    if (!s->inventory_open) return;
 
-    /* Panel background */
+    /* Main panel */
+    draw_rect(
+        s,-0.94f,-0.80f,
+        0.94f,0.82f,
+        0.35f,0.24f,0.12f
+    );
 
     draw_rect(
-        s,
-        -0.97f,
-        0.68f,
-        -0.38f,
-        0.94f,
-        0.035f,
-        0.045f,
-        0.055f
+        s,-0.925f,-0.785f,
+        0.925f,0.805f,
+        0.035f,0.045f,0.043f
     );
 
     /* Header */
+    draw_rect(
+        s,-0.905f,0.675f,
+        0.905f,0.765f,
+        0.12f,0.085f,0.045f
+    );
 
-    draw_inventory_char(
-        s,
-        'I',
-        -0.92f,
-        0.91f,
-        0.018f,
-        0.3f,
-        0.85f,
-        1.0f
+    draw_rect(
+        s,-0.905f,0.665f,
+        0.905f,0.672f,
+        0.76f,0.53f,0.23f
+    );
+
+    draw_disc(
+        s,-0.855f,0.72f,0.035f,
+        0.72f,0.52f,0.22f
     );
 
     draw_inventory_char(
-        s,
-        'R',
-        -0.85f,
-        0.91f,
-        0.018f,
-        0.3f,
-        0.85f,
-        1.0f
+        s,'I',
+        -0.868f,0.737f,
+        0.012f,
+        0.07f,0.06f,0.04f
     );
 
-    static const float colors[5][3] = {
-        {0.25f, 0.85f, 0.30f},
-        {0.75f, 0.48f, 0.20f},
-        {0.65f, 0.65f, 0.65f},
-        {0.85f, 0.55f, 0.20f},
-        {0.30f, 0.75f, 0.85f}
+    draw_inventory_char(
+        s,'R',
+        -0.785f,0.744f,
+        0.022f,
+        0.96f,0.82f,0.55f
+    );
+
+    /* Close button */
+    draw_disc(
+        s,0.855f,0.72f,0.045f,
+        0.62f,0.40f,0.16f
+    );
+
+    draw_rect(
+        s,0.832f,0.715f,
+        0.878f,0.725f,
+        0.035f,0.025f,0.015f
+    );
+
+    draw_rect(
+        s,0.850f,0.697f,
+        0.860f,0.743f,
+        0.035f,0.025f,0.015f
+    );
+
+    /* Category rail */
+    const float tab_y[4] = {
+        0.50f,0.33f,0.16f,-0.01f
     };
 
-    static const char labels[5] = {
-        'H', 'W', 'S', 'I', 'F'
+    const char tab_label[4] = {
+        'I','W','S','F'
     };
 
-    for (int i = 0; i < 5; ++i) {
-
-        float y = 0.85f - (float)i * 0.045f;
-
-        draw_inventory_char(
-            s,
-            labels[i],
-            -0.91f,
-            y,
-            0.014f,
-            colors[i][0],
-            colors[i][1],
-            colors[i][2]
-        );
-
-        int count = MueangResource_GetCount(
-            &s->resources,
-            (MueangResourceItem)i
-        );
-
-        draw_inventory_number(
-            s,
-            count,
-            -0.72f,
-            y
-        );
-
-        /* Quantity background */
+    for (int i=0;i<4;i++) {
 
         draw_rect(
             s,
-            -0.52f,
-            y - 0.012f,
-            -0.42f,
-            y - 0.002f,
-            0.16f,
-            0.16f,
-            0.16f
+            -0.875f,tab_y[i]-0.060f,
+            -0.675f,tab_y[i]+0.060f,
+            i==0?0.42f:0.105f,
+            i==0?0.27f:0.075f,
+            i==0?0.11f:0.045f
         );
 
-        float fill = 0.10f * ((float)count / 99.0f);
+        draw_rect(
+            s,
+            -0.870f,tab_y[i]-0.055f,
+            -0.680f,tab_y[i]-0.048f,
+            0.78f,0.55f,0.24f
+        );
 
-        if (fill > 0.0f) {
+        draw_inventory_char(
+            s,tab_label[i],
+            -0.805f,tab_y[i]+0.020f,
+            0.018f,
+            0.96f,0.80f,0.52f
+        );
+    }
+
+    /* Item slots */
+    static const float sx[5] = {
+        -0.47f,-0.18f,0.11f,-0.47f,-0.18f
+    };
+
+    static const float sy[5] = {
+        0.37f,0.37f,0.37f,0.08f,0.08f
+    };
+
+    static const float rgb[5][3] = {
+        {0.22f,0.62f,0.22f},
+        {0.48f,0.27f,0.11f},
+        {0.52f,0.54f,0.55f},
+        {0.65f,0.39f,0.18f},
+        {0.68f,0.52f,0.28f}
+    };
+
+    const char glyph[5] = {
+        'H','W','S','I','F'
+    };
+
+    for (int i=0;i<5;i++) {
+
+        float x=sx[i];
+        float y=sy[i];
+
+        int selected =
+            (s->inventory_selected==i);
+
+        draw_rect(
+            s,
+            x-0.105f,y-0.112f,
+            x+0.105f,y+0.112f,
+            selected?0.84f:0.30f,
+            selected?0.64f:0.19f,
+            selected?0.30f:0.095f
+        );
+
+        draw_rect(
+            s,
+            x-0.096f,y-0.103f,
+            x+0.096f,y+0.103f,
+            0.045f,0.040f,0.030f
+        );
+
+        draw_disc(
+            s,
+            x,y+0.020f,
+            0.050f,
+            rgb[i][0],
+            rgb[i][1],
+            rgb[i][2]
+        );
+
+        draw_inventory_char(
+            s,
+            glyph[i],
+            x-0.012f,y+0.036f,
+            0.012f,
+            0.98f,0.88f,0.68f
+        );
+
+        int count =
+            MueangResource_GetCount(
+                &s->resources,
+                (MueangResourceItem)i
+            );
+
+        draw_inventory_number(
+            s,count,
+            x-0.065f,y-0.064f
+        );
+
+        draw_rect(
+            s,
+            x-0.078f,y-0.091f,
+            x+0.078f,y-0.084f,
+            0.16f,0.13f,0.08f
+        );
+
+        float fill =
+            0.156f*((float)count/99.0f);
+
+        if (fill>0.0f) {
 
             draw_rect(
                 s,
-                -0.52f,
-                y - 0.012f,
-                -0.52f + fill,
-                y - 0.002f,
-                colors[i][0],
-                colors[i][1],
-                colors[i][2]
+                x-0.078f,y-0.091f,
+                x-0.078f+fill,y-0.084f,
+                0.76f,0.49f,0.16f
             );
         }
     }
+
+    /* Selected resource details */
+    int selected=s->inventory_selected;
+
+    if (selected<0 || selected>=5)
+        selected=0;
+
+    int count =
+        MueangResource_GetCount(
+            &s->resources,
+            (MueangResourceItem)selected
+        );
+
+    draw_rect(
+        s,0.32f,-0.57f,
+        0.86f,0.58f,
+        0.12f,0.085f,0.050f
+    );
+
+    draw_rect(
+        s,0.332f,-0.555f,
+        0.848f,0.565f,
+        0.035f,0.042f,0.038f
+    );
+
+    draw_rect(
+        s,0.35f,0.42f,
+        0.83f,0.427f,
+        0.74f,0.49f,0.19f
+    );
+
+    draw_disc(
+        s,0.47f,0.24f,
+        0.080f,
+        rgb[selected][0],
+        rgb[selected][1],
+        rgb[selected][2]
+    );
+
+    draw_inventory_char(
+        s,glyph[selected],
+        0.455f,0.265f,
+        0.020f,
+        1.0f,0.88f,0.66f
+    );
+
+    draw_inventory_number(
+        s,count,
+        0.59f,0.245f
+    );
+
+    draw_rect(
+        s,0.36f,0.04f,
+        0.80f,0.047f,
+        0.64f,0.43f,0.18f
+    );
+
+    draw_rect(
+        s,0.36f,-0.08f,
+        0.80f,-0.055f,
+        0.12f,0.095f,0.065f
+    );
+
+    float capacity =
+        0.44f*((float)count/99.0f);
+
+    if (capacity>0.0f) {
+
+        draw_rect(
+            s,
+            0.36f,-0.08f,
+            0.36f+capacity,-0.055f,
+            0.72f,0.48f,0.17f
+        );
+    }
+
+    /* Action plates - crafting is not connected yet */
+    draw_rect(
+        s,0.35f,-0.42f,
+        0.57f,-0.29f,
+        0.42f,0.27f,0.12f
+    );
+
+    draw_rect(
+        s,0.61f,-0.42f,
+        0.82f,-0.29f,
+        0.19f,0.14f,0.09f
+    );
+
+    draw_rect(
+        s,0.35f,-0.42f,
+        0.57f,-0.412f,
+        0.78f,0.55f,0.23f
+    );
+
+    draw_rect(
+        s,0.61f,-0.42f,
+        0.82f,-0.412f,
+        0.58f,0.39f,0.17f
+    );
 }
 
 /* =========================================================
@@ -681,74 +821,67 @@ static void render_scene(
         h
     );
 
+    /* Full-screen procedural waterfall background */
+    if (s->inventory_open) {
+
+        UIRenderer_Draw(
+            &s->ui_renderer,
+            w,
+            h,
+            (float)get_time_seconds()
+        );
+
+        glDisable(GL_DEPTH_TEST);
+
+        glUseProgram(s->program);
+
+        render_inventory_ui(s);
+
+        glDisableVertexAttribArray(s->position);
+
+        return;
+    }
+
     glDisable(GL_DEPTH_TEST);
 
     glUseProgram(s->program);
 
     /* Movement joystick */
-
     draw_disc(
-        s,
-        -0.72f,
-        -0.72f,
-        0.16f,
-        0.12f,
-        0.12f,
-        0.12f
+        s,-0.72f,-0.72f,0.16f,
+        0.12f,0.12f,0.12f
     );
 
     draw_disc(
         s,
-        -0.72f + s->move_x * 0.10f,
-        -0.72f + s->move_y * 0.10f,
+        -0.72f+s->move_x*0.10f,
+        -0.72f+s->move_y*0.10f,
         0.065f,
-        0.85f,
-        0.85f,
-        0.90f
+        0.85f,0.85f,0.90f
     );
 
     /* Camera touch indicator */
-
     if (s->right_pointer != INVALID_POINTER_ID) {
 
         draw_disc(
-            s,
-            0.72f,
-            -0.72f,
-            0.13f,
-            0.20f,
-            0.20f,
-            0.20f
+            s,0.72f,-0.72f,0.13f,
+            0.20f,0.20f,0.20f
         );
 
         draw_disc(
-            s,
-            0.72f,
-            -0.72f,
-            0.06f,
-            0.85f,
-            0.85f,
-            0.90f
+            s,0.72f,-0.72f,0.06f,
+            0.85f,0.85f,0.90f
         );
     }
 
     /* Jump button */
-
     draw_disc(
-        s,
-        0.78f,
-        -0.38f,
-        0.18f,
-        0.08f,
-        0.08f,
-        0.08f
+        s,0.78f,-0.38f,0.18f,
+        0.08f,0.08f,0.08f
     );
 
     draw_disc(
-        s,
-        0.78f,
-        -0.38f,
-        0.15f,
+        s,0.78f,-0.38f,0.15f,
         s->jump_pointer != INVALID_POINTER_ID
             ? 1.0f : 0.25f,
         0.85f,
@@ -756,32 +889,18 @@ static void render_scene(
     );
 
     draw_disc(
-        s,
-        0.78f,
-        -0.38f,
-        0.055f,
-        1.0f,
-        1.0f,
-        1.0f
+        s,0.78f,-0.38f,0.055f,
+        1.0f,1.0f,1.0f
     );
 
     /* Sprint button */
-
     draw_disc(
-        s,
-        0.53f,
-        -0.72f,
-        0.16f,
-        0.08f,
-        0.08f,
-        0.08f
+        s,0.53f,-0.72f,0.16f,
+        0.08f,0.08f,0.08f
     );
 
     draw_disc(
-        s,
-        0.53f,
-        -0.72f,
-        0.135f,
+        s,0.53f,-0.72f,0.135f,
         s->sprint_pointer != INVALID_POINTER_ID
             ? 1.0f : 0.95f,
         0.55f,
@@ -789,32 +908,18 @@ static void render_scene(
     );
 
     draw_disc(
-        s,
-        0.53f,
-        -0.72f,
-        0.05f,
-        1.0f,
-        1.0f,
-        1.0f
+        s,0.53f,-0.72f,0.05f,
+        1.0f,1.0f,1.0f
     );
 
     /* Action button */
-
     draw_disc(
-        s,
-        0.53f,
-        -0.38f,
-        0.18f,
-        0.08f,
-        0.08f,
-        0.08f
+        s,0.53f,-0.38f,0.18f,
+        0.08f,0.08f,0.08f
     );
 
     draw_disc(
-        s,
-        0.53f,
-        -0.38f,
-        0.15f,
+        s,0.53f,-0.38f,0.15f,
         s->action_pointer != INVALID_POINTER_ID
             ? 0.10f : 0.05f,
         s->action_pointer != INVALID_POINTER_ID
@@ -823,16 +928,9 @@ static void render_scene(
     );
 
     draw_disc(
-        s,
-        0.53f,
-        -0.38f,
-        0.055f,
-        1.0f,
-        1.0f,
-        1.0f
+        s,0.53f,-0.38f,0.055f,
+        1.0f,1.0f,1.0f
     );
-
-    /* Resource and Inventory UI */
 
     render_resource_ui(s);
     render_inventory_ui(s);
@@ -849,19 +947,19 @@ static void update_joystick(
     float x,
     float y)
 {
-    float dx = x - s->anchor_x;
-    float dy = y - s->anchor_y;
+    float dx=x-s->anchor_x;
+    float dy=y-s->anchor_y;
 
-    float distance = sqrtf(dx * dx + dy * dy);
+    float distance=sqrtf(dx*dx+dy*dy);
 
-    if (distance > JOYSTICK_RADIUS) {
+    if (distance>JOYSTICK_RADIUS) {
 
-        dx *= JOYSTICK_RADIUS / distance;
-        dy *= JOYSTICK_RADIUS / distance;
+        dx*=JOYSTICK_RADIUS/distance;
+        dy*=JOYSTICK_RADIUS/distance;
     }
 
-    s->move_x = dx / JOYSTICK_RADIUS;
-    s->move_y = -dy / JOYSTICK_RADIUS;
+    s->move_x=dx/JOYSTICK_RADIUS;
+    s->move_y=-dy/JOYSTICK_RADIUS;
 }
 
 /* =========================================================
@@ -872,12 +970,12 @@ static int find_pointer(
     const AInputEvent *event,
     int pointer_id)
 {
-    int count = AMotionEvent_getPointerCount(event);
+    int count=AMotionEvent_getPointerCount(event);
 
-    for (int i = 0; i < count; i++) {
+    for (int i=0;i<count;i++) {
 
-        if (AMotionEvent_getPointerId(event, i)
-            == pointer_id) {
+        if (AMotionEvent_getPointerId(event,i)
+            ==pointer_id) {
             return i;
         }
     }
@@ -895,16 +993,13 @@ static int hit_button(
     float rx,
     float ry)
 {
-    float px = (cx + 1.0f) * 0.5f;
-    float py = (1.0f - cy) * 0.5f;
+    float px=(cx+1.0f)*0.5f;
+    float py=(1.0f-cy)*0.5f;
 
-    float dx =
-        (x / (float)w - px) / rx;
+    float dx=(x/(float)w-px)/rx;
+    float dy=(y/(float)h-py)/ry;
 
-    float dy =
-        (y / (float)h - py) / ry;
-
-    return dx * dx + dy * dy <= 1.0f;
+    return dx*dx+dy*dy<=1.0f;
 }
 
 static int pick_button(
@@ -913,50 +1008,39 @@ static int pick_button(
     int w,
     int h)
 {
-    static const float centers[5][2] = {
-        {0.78f, -0.38f},
-        {0.53f, -0.72f},
-        {0.53f, -0.38f},
-        {0.78f, 0.72f},
-        {-0.78f, 0.78f}
+    static const float centers[5][2]={
+        {0.78f,-0.38f},
+        {0.53f,-0.72f},
+        {0.53f,-0.38f},
+        {0.78f,0.72f},
+        {-0.78f,0.78f}
     };
 
-    int best = -1;
+    int best=-1;
+    float best_distance=999999.0f;
 
-    float best_distance = 999999.0f;
+    for(int i=0;i<5;i++){
 
-    for (int i = 0; i < 5; i++) {
-
-        if (!hit_button(
-                x,
-                y,
-                w,
-                h,
-                centers[i][0],
-                centers[i][1],
-                0.105f,
-                0.115f)) {
+        if(!hit_button(
+            x,y,w,h,
+            centers[i][0],
+            centers[i][1],
+            0.105f,
+            0.115f)){
             continue;
         }
 
-        float px =
-            (centers[i][0] + 1.0f) * 0.5f;
+        float px=(centers[i][0]+1.0f)*0.5f;
+        float py=(1.0f-centers[i][1])*0.5f;
 
-        float py =
-            (1.0f - centers[i][1]) * 0.5f;
+        float dx=(x/(float)w-px)/0.105f;
+        float dy=(y/(float)h-py)/0.115f;
 
-        float dx =
-            (x / (float)w - px) / 0.105f;
+        float distance=dx*dx+dy*dy;
 
-        float dy =
-            (y / (float)h - py) / 0.115f;
-
-        float distance = dx * dx + dy * dy;
-
-        if (distance < best_distance) {
-
-            best_distance = distance;
-            best = i;
+        if(distance<best_distance){
+            best_distance=distance;
+            best=i;
         }
     }
 
@@ -971,103 +1055,122 @@ static int handle_input(
     struct android_app *app,
     AInputEvent *event)
 {
-    GameState *s = (GameState *)app->userData;
+    GameState *s=(GameState *)app->userData;
 
-    if (AInputEvent_getType(event)
-        != AINPUT_EVENT_TYPE_MOTION) {
+    if(AInputEvent_getType(event)
+        !=AINPUT_EVENT_TYPE_MOTION){
         return 0;
     }
 
-    if (!app->window) return 1;
+    if(!app->window)return 1;
 
-    int action = AMotionEvent_getAction(event);
+    int action=AMotionEvent_getAction(event);
 
-    int masked =
-        action & AMOTION_EVENT_ACTION_MASK;
+    int masked=
+        action&AMOTION_EVENT_ACTION_MASK;
 
-    int index =
-        (action & AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
-        >> AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
+    int index=
+        (action&AMOTION_EVENT_ACTION_POINTER_INDEX_MASK)
+        >>AMOTION_EVENT_ACTION_POINTER_INDEX_SHIFT;
 
-    int width =
-        ANativeWindow_getWidth(app->window);
+    int width=ANativeWindow_getWidth(app->window);
+    int height=ANativeWindow_getHeight(app->window);
 
-    int height =
-        ANativeWindow_getHeight(app->window);
-
-    if (width <= 0 || height <= 0) return 1;
+    if(width<=0||height<=0)return 1;
 
     /* Finger down */
+    if(masked==AMOTION_EVENT_ACTION_DOWN ||
+       masked==AMOTION_EVENT_ACTION_POINTER_DOWN){
 
-    if (masked == AMOTION_EVENT_ACTION_DOWN ||
-        masked == AMOTION_EVENT_ACTION_POINTER_DOWN) {
+        int id=AMotionEvent_getPointerId(event,index);
+        float x=AMotionEvent_getX(event,index);
+        float y=AMotionEvent_getY(event,index);
 
-        int id =
-            AMotionEvent_getPointerId(event, index);
+        /* Inventory modal touch handling */
+        if(s->inventory_open){
 
-        float x =
-            AMotionEvent_getX(event, index);
+            float nx=(x/(float)width)*2.0f-1.0f;
+            float ny=1.0f-(y/(float)height)*2.0f;
 
-        float y =
-            AMotionEvent_getY(event, index);
+            /* Close button */
+            if(nx>0.78f && ny>0.62f){
 
-        int pressed_button =
-            pick_button(x, y, width, height);
+                s->inventory_open=0;
 
-        /* Inventory button must be checked before joystick */
+            } else if(
+                nx>-0.60f &&
+                nx<0.25f &&
+                ny>-0.04f &&
+                ny<0.50f){
 
-        if (pressed_button == 4 &&
-            s->inventory_pointer == INVALID_POINTER_ID) {
+                int col=(int)((nx+0.60f)/0.29f);
+                int row=(ny<0.225f)?1:0;
 
-            s->inventory_pointer = id;
+                int selected=row*3+col;
 
-        } else if (
-            x < width * 0.48f &&
-            s->left_pointer == INVALID_POINTER_ID) {
+                if(selected>=0 && selected<5)
+                    s->inventory_selected=selected;
+            }
 
-            s->left_pointer = id;
+            return 1;
+        }
 
-            s->anchor_x = x;
-            s->anchor_y = y;
+        int pressed_button=
+            pick_button(x,y,width,height);
 
-            s->move_x = 0;
-            s->move_y = 0;
+        /* Inventory button before joystick */
+        if(pressed_button==4 &&
+           s->inventory_pointer==INVALID_POINTER_ID){
+
+            s->inventory_pointer=id;
+
+        } else if(
+            x<width*0.48f &&
+            s->left_pointer==INVALID_POINTER_ID){
+
+            s->left_pointer=id;
+
+            s->anchor_x=x;
+            s->anchor_y=y;
+
+            s->move_x=0;
+            s->move_y=0;
 
         } else {
 
-            int button = pressed_button;
+            int button=pressed_button;
 
-            if (button == 0 &&
-                s->jump_pointer == INVALID_POINTER_ID) {
+            if(button==0 &&
+               s->jump_pointer==INVALID_POINTER_ID){
 
-                s->jump_pointer = id;
+                s->jump_pointer=id;
 
-            } else if (
-                button == 1 &&
-                s->sprint_pointer == INVALID_POINTER_ID) {
+            } else if(
+                button==1 &&
+                s->sprint_pointer==INVALID_POINTER_ID){
 
-                s->sprint_pointer = id;
+                s->sprint_pointer=id;
 
-            } else if (
-                button == 2 &&
-                s->action_pointer == INVALID_POINTER_ID) {
+            } else if(
+                button==2 &&
+                s->action_pointer==INVALID_POINTER_ID){
 
-                s->action_pointer = id;
+                s->action_pointer=id;
 
-            } else if (
-                button == 3 &&
-                s->harvest_pointer == INVALID_POINTER_ID) {
+            } else if(
+                button==3 &&
+                s->harvest_pointer==INVALID_POINTER_ID){
 
-                s->harvest_pointer = id;
+                s->harvest_pointer=id;
 
-            } else if (
-                x >= width * 0.48f &&
-                s->right_pointer == INVALID_POINTER_ID) {
+            } else if(
+                x>=width*0.48f &&
+                s->right_pointer==INVALID_POINTER_ID){
 
-                s->right_pointer = id;
+                s->right_pointer=id;
 
-                s->last_look_x = x;
-                s->last_look_y = y;
+                s->last_look_x=x;
+                s->last_look_y=y;
             }
         }
 
@@ -1075,43 +1178,36 @@ static int handle_input(
     }
 
     /* Finger movement */
+    if(masked==AMOTION_EVENT_ACTION_MOVE){
 
-    if (masked == AMOTION_EVENT_ACTION_MOVE) {
+        if(s->left_pointer!=INVALID_POINTER_ID){
 
-        if (s->left_pointer != INVALID_POINTER_ID) {
+            int i=find_pointer(event,s->left_pointer);
 
-            int i = find_pointer(
-                event,
-                s->left_pointer
-            );
-
-            if (i >= 0) {
+            if(i>=0){
 
                 update_joystick(
                     s,
-                    AMotionEvent_getX(event, i),
-                    AMotionEvent_getY(event, i)
+                    AMotionEvent_getX(event,i),
+                    AMotionEvent_getY(event,i)
                 );
-}
+            }
         }
 
-        if (s->right_pointer != INVALID_POINTER_ID) {
+        if(s->right_pointer!=INVALID_POINTER_ID){
 
-            int i = find_pointer(
-                event,
-                s->right_pointer
-            );
+            int i=find_pointer(event,s->right_pointer);
 
-            if (i >= 0) {
+            if(i>=0){
 
-                float x = AMotionEvent_getX(event, i);
-                float y = AMotionEvent_getY(event, i);
+                float x=AMotionEvent_getX(event,i);
+                float y=AMotionEvent_getY(event,i);
 
-                s->look_dx += x - s->last_look_x;
-                s->look_dy += y - s->last_look_y;
+                s->look_dx+=x-s->last_look_x;
+                s->look_dy+=y-s->last_look_y;
 
-                s->last_look_x = x;
-                s->last_look_y = y;
+                s->last_look_x=x;
+                s->last_look_y=y;
             }
         }
 
@@ -1119,64 +1215,61 @@ static int handle_input(
     }
 
     /* Finger up */
+    if(masked==AMOTION_EVENT_ACTION_UP ||
+       masked==AMOTION_EVENT_ACTION_POINTER_UP){
 
-    if (masked == AMOTION_EVENT_ACTION_UP ||
-        masked == AMOTION_EVENT_ACTION_POINTER_UP) {
+        int id=AMotionEvent_getPointerId(event,index);
 
-        int id =
-            AMotionEvent_getPointerId(event, index);
+        if(id==s->left_pointer){
 
-        if (id == s->left_pointer) {
+            s->left_pointer=INVALID_POINTER_ID;
 
-            s->left_pointer = INVALID_POINTER_ID;
-
-            s->move_x = 0;
-            s->move_y = 0;
+            s->move_x=0;
+            s->move_y=0;
         }
 
-        if (id == s->right_pointer)
-            s->right_pointer = INVALID_POINTER_ID;
+        if(id==s->right_pointer)
+            s->right_pointer=INVALID_POINTER_ID;
 
-        if (id == s->jump_pointer)
-            s->jump_pointer = INVALID_POINTER_ID;
+        if(id==s->jump_pointer)
+            s->jump_pointer=INVALID_POINTER_ID;
 
-        if (id == s->sprint_pointer)
-            s->sprint_pointer = INVALID_POINTER_ID;
+        if(id==s->sprint_pointer)
+            s->sprint_pointer=INVALID_POINTER_ID;
 
-        if (id == s->action_pointer)
-            s->action_pointer = INVALID_POINTER_ID;
+        if(id==s->action_pointer)
+            s->action_pointer=INVALID_POINTER_ID;
 
-        if (id == s->harvest_pointer)
-            s->harvest_pointer = INVALID_POINTER_ID;
+        if(id==s->harvest_pointer)
+            s->harvest_pointer=INVALID_POINTER_ID;
 
-        if (id == s->inventory_pointer) {
+        if(id==s->inventory_pointer){
 
-            s->inventory_pointer = INVALID_POINTER_ID;
+            s->inventory_pointer=INVALID_POINTER_ID;
 
-            s->inventory_open = !s->inventory_open;
+            s->inventory_open=!s->inventory_open;
         }
 
         return 1;
     }
 
     /* Cancel all touches */
+    if(masked==AMOTION_EVENT_ACTION_CANCEL){
 
-    if (masked == AMOTION_EVENT_ACTION_CANCEL) {
+        s->left_pointer=INVALID_POINTER_ID;
+        s->right_pointer=INVALID_POINTER_ID;
 
-        s->left_pointer = INVALID_POINTER_ID;
-        s->right_pointer = INVALID_POINTER_ID;
+        s->jump_pointer=INVALID_POINTER_ID;
+        s->sprint_pointer=INVALID_POINTER_ID;
+        s->action_pointer=INVALID_POINTER_ID;
+        s->harvest_pointer=INVALID_POINTER_ID;
+        s->inventory_pointer=INVALID_POINTER_ID;
 
-        s->jump_pointer = INVALID_POINTER_ID;
-        s->sprint_pointer = INVALID_POINTER_ID;
-        s->action_pointer = INVALID_POINTER_ID;
-        s->harvest_pointer = INVALID_POINTER_ID;
-        s->inventory_pointer = INVALID_POINTER_ID;
+        s->move_x=0;
+        s->move_y=0;
 
-        s->move_x = 0;
-        s->move_y = 0;
-
-        s->look_dx = 0;
-        s->look_dy = 0;
+        s->look_dx=0;
+        s->look_dy=0;
 
         return 1;
     }
@@ -1190,18 +1283,20 @@ static int handle_input(
 
 static void destroy_egl(GameState *s)
 {
-    if (s->display != EGL_NO_DISPLAY) {
+    if(s->display!=EGL_NO_DISPLAY){
 
-        if (s->context != EGL_NO_CONTEXT &&
-            eglGetCurrentContext() == s->context) {
+        if(s->context!=EGL_NO_CONTEXT &&
+           eglGetCurrentContext()==s->context){
 
             Renderer3D_Release(&s->renderer);
 
-            if (s->program) {
+            UIRenderer_Release(&s->ui_renderer);
+
+            if(s->program){
 
                 glDeleteProgram(s->program);
 
-                s->program = 0;
+                s->program=0;
             }
         }
 
@@ -1212,20 +1307,20 @@ static void destroy_egl(GameState *s)
             EGL_NO_CONTEXT
         );
 
-        if (s->context != EGL_NO_CONTEXT)
-            eglDestroyContext(s->display, s->context);
+        if(s->context!=EGL_NO_CONTEXT)
+            eglDestroyContext(s->display,s->context);
 
-        if (s->surface != EGL_NO_SURFACE)
-            eglDestroySurface(s->display, s->surface);
+        if(s->surface!=EGL_NO_SURFACE)
+            eglDestroySurface(s->display,s->surface);
 
         eglTerminate(s->display);
     }
 
-    s->display = EGL_NO_DISPLAY;
-    s->surface = EGL_NO_SURFACE;
-    s->context = EGL_NO_CONTEXT;
+    s->display=EGL_NO_DISPLAY;
+    s->surface=EGL_NO_SURFACE;
+    s->context=EGL_NO_CONTEXT;
 
-    s->ready = 0;
+    s->ready=0;
 }
 
 static int init_egl(
@@ -1237,41 +1332,41 @@ static int init_egl(
 
     EGLConfig config;
 
-    const EGLint attrs[] = {
+    const EGLint attrs[]={
         EGL_RENDERABLE_TYPE,
         EGL_OPENGL_ES2_BIT,
 
         EGL_SURFACE_TYPE,
         EGL_WINDOW_BIT,
 
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_ALPHA_SIZE, 8,
+        EGL_RED_SIZE,8,
+        EGL_GREEN_SIZE,8,
+        EGL_BLUE_SIZE,8,
+        EGL_ALPHA_SIZE,8,
 
-        EGL_DEPTH_SIZE, 16,
+        EGL_DEPTH_SIZE,16,
 
         EGL_NONE
     };
 
-    s->display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+    s->display=eglGetDisplay(EGL_DEFAULT_DISPLAY);
 
-    if (s->display == EGL_NO_DISPLAY)
+    if(s->display==EGL_NO_DISPLAY)
         return 0;
 
-    if (!eglInitialize(s->display, NULL, NULL)) {
+    if(!eglInitialize(s->display,NULL,NULL)){
 
-        s->display = EGL_NO_DISPLAY;
+        s->display=EGL_NO_DISPLAY;
 
         return 0;
     }
 
-    if (!eglChooseConfig(
-            s->display,
-            attrs,
-            &config,
-            1,
-            &num) || num == 0) {
+    if(!eglChooseConfig(
+        s->display,
+        attrs,
+        &config,
+        1,
+        &num) || num==0){
 
         destroy_egl(s);
 
@@ -1292,56 +1387,57 @@ static int init_egl(
         format
     );
 
-    s->surface = eglCreateWindowSurface(
+    s->surface=eglCreateWindowSurface(
         s->display,
         config,
         app->window,
         NULL
     );
 
-    const EGLint ctx_attrs[] = {
+    const EGLint ctx_attrs[]={
         EGL_CONTEXT_CLIENT_VERSION,
         2,
         EGL_NONE
     };
 
-    s->context = eglCreateContext(
+    s->context=eglCreateContext(
         s->display,
         config,
         EGL_NO_CONTEXT,
         ctx_attrs
     );
 
-    if (s->surface == EGL_NO_SURFACE ||
-        s->context == EGL_NO_CONTEXT) {
+    if(s->surface==EGL_NO_SURFACE ||
+       s->context==EGL_NO_CONTEXT){
 
         destroy_egl(s);
 
         return 0;
     }
 
-    if (!eglMakeCurrent(
-            s->display,
-            s->surface,
-            s->surface,
-            s->context)) {
+    if(!eglMakeCurrent(
+        s->display,
+        s->surface,
+        s->surface,
+        s->context)){
 
         destroy_egl(s);
 
         return 0;
     }
 
-    if (!create_program(s) ||
-        !Renderer3D_Init(
-            &s->renderer,
-            app->activity->assetManager)) {
+    if(!create_program(s) ||
+       !Renderer3D_Init(
+           &s->renderer,
+           app->activity->assetManager) ||
+       !UIRenderer_Init(&s->ui_renderer)){
 
         destroy_egl(s);
 
         return 0;
     }
 
-    s->ready = 1;
+    s->ready=1;
 
     return 1;
 }
@@ -1350,128 +1446,89 @@ static int init_egl(
    ANDROID COMMAND
    ========================================================= */
 
-static void handle_cmd(
-    struct android_app *app,
-    int32_t cmd)
-{
-    GameState *s = (GameState *)app->userData;
-
-    if (cmd == APP_CMD_INIT_WINDOW) {
-
-        if (app->window && !s->ready)
-            init_egl(app, s);
-
-    } else if (cmd == APP_CMD_TERM_WINDOW) {
-
-        destroy_egl(s);
-    }
-}
-
-/* =========================================================
-   TIME
-   ========================================================= */
-
-static double get_time_seconds(void)
-{
-    struct timespec ts;
-
-    clock_gettime(CLOCK_MONOTONIC, &ts);
-
-    return
-        (double)ts.tv_sec +
-        (double)ts.tv_nsec / 1000000000.0;
-}
-
-/* =========================================================
-   ANDROID MAIN
-   ========================================================= */
-
 void android_main(struct android_app *app)
 {
     app_dummy();
 
-    GameState state = {0};
+    GameState state={0};
 
-    state.display = EGL_NO_DISPLAY;
-    state.surface = EGL_NO_SURFACE;
-    state.context = EGL_NO_CONTEXT;
+    state.display=EGL_NO_DISPLAY;
+    state.surface=EGL_NO_SURFACE;
+    state.context=EGL_NO_CONTEXT;
 
-    state.left_pointer = INVALID_POINTER_ID;
-    state.right_pointer = INVALID_POINTER_ID;
+    state.left_pointer=INVALID_POINTER_ID;
+    state.right_pointer=INVALID_POINTER_ID;
 
-    state.jump_pointer = INVALID_POINTER_ID;
-    state.sprint_pointer = INVALID_POINTER_ID;
-    state.action_pointer = INVALID_POINTER_ID;
-    state.harvest_pointer = INVALID_POINTER_ID;
-    state.inventory_pointer = INVALID_POINTER_ID;
-    state.inventory_open = 0;
+    state.jump_pointer=INVALID_POINTER_ID;
+    state.sprint_pointer=INVALID_POINTER_ID;
+    state.action_pointer=INVALID_POINTER_ID;
+    state.harvest_pointer=INVALID_POINTER_ID;
+    state.inventory_pointer=INVALID_POINTER_ID;
 
-    /* Initialize existing game */
+    state.inventory_open=0;
+    state.inventory_selected=0;
 
     MueangGame_Init(&state.game);
 
-    /* Initialize resource harvesting */
-
     MueangResource_Init(&state.resources);
 
-    app->userData = &state;
+    app->userData=&state;
 
-    app->onAppCmd = handle_cmd;
-    app->onInputEvent = handle_input;
+    app->onAppCmd=handle_cmd;
+    app->onInputEvent=handle_input;
 
-    double previous = get_time_seconds();
+    double previous=get_time_seconds();
 
-    while (!app->destroyRequested) {
+    while(!app->destroyRequested){
 
         int events;
 
         struct android_poll_source *source;
 
-        while (ALooper_pollOnce(
-                   state.ready ? 0 : -1,
-                   NULL,
-                   &events,
-                   (void **)&source) >= 0) {
+        while(ALooper_pollOnce(
+            state.ready?0:-1,
+            NULL,
+            &events,
+            (void **)&source)>=0){
 
-            if (source)
-                source->process(app, source);
+            if(source)
+                source->process(app,source);
 
-            if (app->destroyRequested)
+            if(app->destroyRequested)
                 break;
         }
 
-        if (app->destroyRequested)
+        if(app->destroyRequested)
             break;
 
-        if (state.ready && app->window) {
+        if(state.ready && app->window){
 
-            double now = get_time_seconds();
+            double now=get_time_seconds();
 
-            float dt = (float)(now - previous);
+            float dt=(float)(now-previous);
 
-            previous = now;
+            previous=now;
 
-            if (dt < 0.001f)
-                dt = 0.001f;
+            if(dt<0.001f)
+                dt=0.001f;
 
-            if (dt > 0.05f)
-                dt = 0.05f;
+            if(dt>0.05f)
+                dt=0.05f;
 
-            float look_x =
-                state.look_dx *
-                LOOK_SENSITIVITY /
-                (2.2f * dt);
+            float look_x=
+                state.look_dx*
+                LOOK_SENSITIVITY/
+                (2.2f*dt);
 
-            float look_y =
-                state.look_dy *
-                LOOK_SENSITIVITY /
-                (1.5f * dt);
+            float look_y=
+                state.look_dy*
+                LOOK_SENSITIVITY/
+                (1.5f*dt);
 
-            state.look_dx = 0;
-            state.look_dy = 0;
+            state.look_dx=0;
+            state.look_dy=0;
 
             /* Existing gameplay update */
-
             MueangGame_Update(
                 &state.game,
 
@@ -1481,17 +1538,16 @@ void android_main(struct android_app *app)
                 look_x,
                 look_y,
 
-                state.jump_pointer != INVALID_POINTER_ID,
+                state.jump_pointer!=INVALID_POINTER_ID,
 
-                state.sprint_pointer != INVALID_POINTER_ID,
+                state.sprint_pointer!=INVALID_POINTER_ID,
 
-                state.action_pointer != INVALID_POINTER_ID,
+                state.action_pointer!=INVALID_POINTER_ID,
 
                 dt
             );
 
             /* Resource harvesting update */
-
             MueangResource_Update(
                 &state.resources,
 
@@ -1499,18 +1555,15 @@ void android_main(struct android_app *app)
                 state.game.player.z,
 
                 state.game.player.grounded &&
-                state.harvest_pointer != INVALID_POINTER_ID,
+                state.harvest_pointer!=INVALID_POINTER_ID,
 
                 dt
             );
 
-            int w =
-                ANativeWindow_getWidth(app->window);
+            int w=ANativeWindow_getWidth(app->window);
+            int h=ANativeWindow_getHeight(app->window);
 
-            int h =
-                ANativeWindow_getHeight(app->window);
-
-            render_scene(&state, w, h);
+            render_scene(&state,w,h);
 
             eglSwapBuffers(
                 state.display,
@@ -1519,11 +1572,9 @@ void android_main(struct android_app *app)
 
         } else {
 
-            previous = get_time_seconds();
+            previous=get_time_seconds();
         }
     }
 
     destroy_egl(&state);
 }
-
-      
