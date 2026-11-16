@@ -62,20 +62,23 @@ typedef struct {
 
 } GameState;
 
-static double get_time_seconds(void);
 
-static const char *VS =
-    "attribute vec3 aPosition;"
-    "void main(){"
-    "gl_Position=vec4(aPosition,1.0);"
-    "}";
+/* =========================================================
+   MONOTONIC TIMER
+   ========================================================= */
 
-static const char *FS =
-    "precision mediump float;"
-    "uniform vec4 uColor;"
-    "void main(){"
-    "gl_FragColor=uColor;"
-    "}";
+static double get_time_seconds(void)
+{
+    struct timespec ts;
+
+    if (clock_gettime(CLOCK_MONOTONIC, &ts) != 0) {
+        return 0.0;
+    }
+
+    return (double)ts.tv_sec +
+           (double)ts.tv_nsec / 1000000000.0;
+}
+
 
 /* =========================================================
    SHADER
