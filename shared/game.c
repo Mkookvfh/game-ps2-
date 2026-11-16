@@ -268,6 +268,7 @@ static void move_npc_towards(
     n->z += (dz / distance) * step;
 }
 
+
 static void update_npc_ai(MueangGame *game, float dt)
 {
     MueangPlayer *p = &game->player;
@@ -279,6 +280,7 @@ static void update_npc_ai(MueangGame *game, float dt)
         if (!n->alive)
             continue;
 
+        /* Civilians keep their existing patrol behavior. */
         if (n->type == 1) {
             n->patrol_timer += dt;
 
@@ -295,15 +297,21 @@ static void update_npc_ai(MueangGame *game, float dt)
         float dz = p->z - n->z;
         float d = sqrtf(dx * dx + dz * dz);
 
+        /* Detect nearby bodies. */
         for (int j = 0; j < MUEANG_NPC_COUNT; ++j) {
             const MueangNPC *body = &game->npcs[j];
+
             if (!body->alive && !body->body_hidden &&
                 distance_xz(n->x, n->z, body->x, body->z) < 5.0f) {
+
                 n->awareness = fmaxf(n->awareness, 0.75f);
+                n->last_seen_x = p->x;
+                n->last_seen_z = p->z;
                 break;
             }
         }
 
+        /* Player detection. */
         if (d < NPC_DETECTION_RANGE) {
             float detection = 1.0f - d / NPC_DETECTION_RANGE;
 
@@ -320,46 +328,62 @@ static void update_npc_ai(MueangGame *game, float dt)
                 detection = 1.0f;
 
             n->awareness += detection * dt * 0.85f;
+
+            n->last_seen_x = p->x;
+            n->last_seen_z = p->z;
+            n->lost_sight_timer = 0.0f;
         } else {
             n->awareness -= dt * 0.22f;
+
+            if (n->state == 2 || n->state == 4)
+                n->lost_sight_timer += dt;
         }
 
         n->awareness = clampf(n->awareness, 0.0f, 1.0f);
 
-        if (n->awareness > 0.25f && n->state < 1)
-            n->state = 1;
-
-        if (n->awareness >= 0.72f)
+        /* Enter pursuit. */
+        if (n->awareness >= 0.72f) {
             n->state = 2;
-/* Guard de-escalation */
-if (n->state == 2 && n->awareness < 0.25f) {
-    n->state = 1;
-    n->attack_timer = 0.0f;
-}
+            n->search_timer = 0.0f;
+        }
 
-if (n->state == 1 && n->awareness < 0.05f) {
-    n->state = 0;
-    n->attack_timer = 0.0f;
-}
+        /* State 2: Chase player or last known position. */
         if (n->state == 2) {
             guard_alerted = 1;
-            n->yaw = atan2f(dx, dz);
 
-            if (d > 1.8f) {
-                n->x += (dx / (d + 0.001f)) * 2.2f * dt;
-                n->z += (dz / (d + 0.001f)) * 2.2f * dt;
+            if (d < NPC_DETECTION_RANGE) {
+                n->last_seen_x = p->x;
+                n->last_seen_z = p->z;
             }
 
+            float target_x = n->last_seen_x;
+            float target_z = n->last_seen_z;
+
+            float target_distance = distance_xz(
+                n->x, n->z, target_x, target_z
+            );
+
+            if (target_distance > 1.8f) {
+                move_npc_towards(
+                    n, target_x, target_z, 2.2f, dt
+                );
+            }
+
+            /* Attack only when the player is actually nearby. */
             if (d < 2.0f) {
                 n->attack_timer += dt;
 
                 if (n->attack_timer > 1.2f) {
                     n->attack_timer = 0.0f;
                     p->detected = 1;
-                    p->health -= 20.0f + (i == 0 ? 5.0f * game->rival_rank : 0.0f);
+
+                    p->health -= 20.0f +
+                        (i == 0 ? 5.0f * game->rival_rank : 0.0f);
+
                     if (p->health <= 0.0f) {
                         if (i == 0 && game->rival_rank < 5)
                             ++game->rival_rank;
+
                         respawn_player(game);
                         break;
                     }
@@ -367,18 +391,115 @@ if (n->state == 1 && n->awareness < 0.05f) {
             } else {
                 n->attack_timer = 0.0f;
             }
-        } else {
-            n->patrol_timer += dt;
 
-            n->x = n->patrol_origin_x +
-                sinf(n->patrol_timer * 0.35f + (float)i) * 1.8f;
+            /* Lost target: search after a short grace period. */
+            if (n->lost_sight_timer > 1.0f &&
+                n->awareness < 0.25f) {
 
-            n->z = n->patrol_origin_z +
-                cosf(n->patrol_timer * 0.28f + (float)i) * 1.2f;
+                n->state = 4;
+                n->search_timer = 0.0f;
+                n->attack_timer = 0.0f;
+            }
+
+            continue;
         }
 
-        if (n->state == 1 && n->awareness < 0.05f)
-            n->state = 0;
+        /* State 1: Investigate suspicious activity. */
+        if (n->awareness > 0.05f) {
+            if (n->state == 0)
+                n->state = 1;
+
+            if (n->state == 1) {
+                float investigate_distance = distance_xz(
+                    n->x, n->z,
+                    n->last_seen_x, n->last_seen_z
+                );
+
+                if (investigate_distance > 1.2f) {
+                    move_npc_towards(
+                        n,
+                        n->last_seen_x,
+                        n->last_seen_z,
+                        1.5f,
+                        dt
+                    );
+                }
+            }
+
+            continue;
+        }
+
+        /* State 4: Search around the last known position. */
+        if (n->state == 4) {
+            n->search_timer += dt;
+
+            float phase = n->search_timer * 1.8f + (float)i;
+            float radius = 1.2f + n->search_timer * 0.35f;
+
+            float search_x = n->last_seen_x +
+                cosf(phase) * radius;
+
+            float search_z = n->last_seen_z +
+                sinf(phase) * radius;
+
+            move_npc_towards(
+                n, search_x, search_z, 1.25f, dt
+            );
+
+            if (n->search_timer >= 4.5f) {
+                n->state = 5;
+                n->search_timer = 0.0f;
+            }
+
+            continue;
+        }
+
+        /* State 5: Walk naturally back to patrol origin. */
+        if (n->state == 5) {
+            float home_distance = distance_xz(
+                n->x, n->z,
+                n->patrol_origin_x,
+                n->patrol_origin_z
+            );
+
+            if (home_distance > 0.35f) {
+                move_npc_towards(
+                    n,
+                    n->patrol_origin_x,
+                    n->patrol_origin_z,
+                    1.8f,
+                    dt
+                );
+            } else {
+                n->x = n->patrol_origin_x;
+                n->z = n->patrol_origin_z;
+                n->state = 0;
+                n->awareness = 0.0f;
+                n->lost_sight_timer = 0.0f;
+                n->search_timer = 0.0f;
+            }
+
+            continue;
+        }
+
+        /* State 0: Normal patrol. */
+        if (n->state == 0) {
+            n->patrol_timer += dt;
+
+            float patrol_x = n->patrol_origin_x +
+                sinf(n->patrol_timer * 0.35f + (float)i) * 1.8f;
+
+            float patrol_z = n->patrol_origin_z +
+                cosf(n->patrol_timer * 0.28f + (float)i) * 1.2f;
+
+            move_npc_towards(
+                n, patrol_x, patrol_z, 1.0f, dt
+            );
+        } else {
+            /* Suspicion has faded: begin natural return. */
+            n->state = 5;
+            n->search_timer = 0.0f;
+        }
     }
 
     game->alert_level = guard_alerted ? 1.0f : 0.0f;
@@ -391,6 +512,7 @@ if (n->state == 1 && n->awareness < 0.05f) {
 
             if (n->alive && n->type == 1 &&
                 distance_xz(p->x, p->z, n->x, n->z) < 2.8f) {
+
                 game->crowd_blending = 1;
                 break;
             }
@@ -400,6 +522,7 @@ if (n->state == 1 && n->awareness < 0.05f) {
     if (!guard_alerted)
         p->detected = 0;
 }
+
 
 /* ================= TERRAIN ================= */
 
@@ -484,10 +607,14 @@ for (int i = 0; i < MUEANG_NPC_COUNT; ++i) {
     MueangNPC *n = &game->npcs[i];
 
     if (n->alive && n->type == 0) {
-        n->awareness = 0.0f;
-        n->state = 0;
-        n->attack_timer = 0.0f;
-    }
+    n->awareness = 0.0f;
+    n->state = 0;
+    n->attack_timer = 0.0f;
+    n->last_seen_x = n->patrol_origin_x;
+    n->last_seen_z = n->patrol_origin_z;
+    n->lost_sight_timer = 0.0f;
+    n->search_timer = 0.0f;
+ }
 }
 
 game->alert_level = 0.0f;
