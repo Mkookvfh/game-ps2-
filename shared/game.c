@@ -243,6 +243,31 @@ static void defeat_npc(MueangGame *game, MueangNPC *npc)
         game->rival_return_timer = 45.0f;
 }
 
+static void move_npc_towards(
+    MueangNPC *n,
+    float target_x,
+    float target_z,
+    float speed,
+    float dt)
+{
+    float dx = target_x - n->x;
+    float dz = target_z - n->z;
+    float distance = sqrtf(dx * dx + dz * dz);
+
+    if (distance < 0.001f)
+        return;
+
+    n->yaw = atan2f(dx, dz);
+
+    float step = speed * dt;
+
+    if (step > distance)
+        step = distance;
+
+    n->x += (dx / distance) * step;
+    n->z += (dz / distance) * step;
+}
+
 static void update_npc_ai(MueangGame *game, float dt)
 {
     MueangPlayer *p = &game->player;
