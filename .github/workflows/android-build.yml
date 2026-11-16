@@ -4,12 +4,23 @@ name: MUEANG ISARA Android Build
 on:
   push:
     branches:
+      - main
       - feature/android-ps2-open-world
     paths:
       - 'platform/android/**'
       - 'shared/**'
       - 'tests/**'
       - '.github/workflows/android-build.yml'
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'platform/android/**'
+      - 'shared/**'
+      - 'tests/**'
+      - '.github/workflows/android-build.yml'
+
   workflow_dispatch:
 
 permissions:
