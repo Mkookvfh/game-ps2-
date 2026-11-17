@@ -186,6 +186,51 @@ sprintText.raycastTarget = false;
 
         holdSerialized.ApplyModifiedPropertiesWithoutUndo();
 
+
+        // Jump Button
+        GameObject jumpButton = CreateUIElement(
+            "JumpButton",
+            canvasObject.transform,
+            new Vector2(1f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(170f, 100f)
+        );
+
+        jumpButton.GetComponent<RectTransform>().anchoredPosition =
+            new Vector2(-150f, 280f);
+
+        Image jumpImage = jumpButton.AddComponent<Image>();
+        jumpImage.color = new Color(0.15f, 0.4f, 0.75f, 0.85f);
+
+        GameObject jumpTextObject = new GameObject(
+            "JumpLabel",
+            typeof(RectTransform)
+        );
+
+        jumpTextObject.transform.SetParent(jumpButton.transform, false);
+
+        RectTransform jumpTextRect =
+            jumpTextObject.GetComponent<RectTransform>();
+
+        jumpTextRect.anchorMin = Vector2.zero;
+        jumpTextRect.anchorMax = Vector2.one;
+        jumpTextRect.offsetMin = Vector2.zero;
+        jumpTextRect.offsetMax = Vector2.zero;
+
+        Text jumpText = jumpTextObject.AddComponent<Text>();
+        jumpText.text = "JUMP";
+        jumpText.alignment = TextAnchor.MiddleCenter;
+        jumpText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        jumpText.fontSize = 28;
+        jumpText.color = Color.white;
+        jumpText.raycastTarget = false;
+
+        Button jumpButtonComponent = jumpButton.AddComponent<Button>();
+
+        jumpButtonComponent.onClick.AddListener(
+            movement.RequestJump
+        );
+
         // Connect Player Controller
         SerializedObject movementSerialized =
             new SerializedObject(movement);
