@@ -105,7 +105,7 @@ if (bodyCollider != null)
             "JoystickBase",
             canvasObject.transform,
             new Vector2(0f, 0f),
-            new Vector2(0f, 0f),
+            new Vector2(0.5f, 0.5f),
             new Vector2(170f, 170f)
         );
 
