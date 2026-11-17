@@ -45,6 +45,23 @@ public static class ProjectWesternSceneBuilder
         ThirdPersonController movement =
             player.AddComponent<ThirdPersonController>();
 
+
+// Temporary visible player body
+GameObject playerBody = GameObject.CreatePrimitive(
+    PrimitiveType.Capsule
+);
+
+playerBody.name = "PlayerBody";
+playerBody.transform.SetParent(player.transform, false);
+playerBody.transform.localPosition = Vector3.zero;
+playerBody.transform.localScale = new Vector3(0.8f, 1f, 0.8f);
+
+// Remove the extra collider because Player already has CharacterController
+Collider bodyCollider = playerBody.GetComponent<Collider>();
+
+if (bodyCollider != null)
+    Object.DestroyImmediate(bodyCollider);
+
         // Camera
         GameObject cameraObject = new GameObject("Main Camera");
         cameraObject.tag = "MainCamera";
