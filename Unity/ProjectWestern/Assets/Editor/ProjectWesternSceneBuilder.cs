@@ -151,6 +151,30 @@ if (bodyCollider != null)
         Image sprintImage = sprintButton.AddComponent<Image>();
         sprintImage.color = new Color(0.65f, 0.3f, 0.1f, 0.85f);
 
+GameObject sprintTextObject = new GameObject(
+    "SprintLabel",
+    typeof(RectTransform)
+);
+
+sprintTextObject.transform.SetParent(sprintButton.transform, false);
+
+RectTransform sprintTextRect =
+    sprintTextObject.GetComponent<RectTransform>();
+
+sprintTextRect.anchorMin = Vector2.zero;
+sprintTextRect.anchorMax = Vector2.one;
+sprintTextRect.offsetMin = Vector2.zero;
+sprintTextRect.offsetMax = Vector2.zero;
+
+Text sprintText = sprintTextObject.AddComponent<Text>();
+sprintText.text = "SPRINT";
+sprintText.alignment = TextAnchor.MiddleCenter;
+sprintText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+sprintText.fontSize = 28;
+sprintText.color = Color.white;
+sprintText.raycastTarget = false;
+
+
         MobileHoldButton holdButton =
             sprintButton.AddComponent<MobileHoldButton>();
 
