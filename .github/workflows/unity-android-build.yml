@@ -1,0 +1,56 @@
+
+name: MUEANG ISARA Unity Android Build
+
+on:
+  push:
+    branches:
+      - feature/unity-android-migration
+    paths:
+      - 'Unity/MueangIsara/**'
+      - '.github/workflows/unity-android-build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android:
+    name: Build Unity Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Check Unity license
+        shell: bash
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+        run: |
+          if [ -z "$UNITY_LICENSE" ]; then
+            echo "::error::Missing UNITY_LICENSE secret"
+            exit 1
+          fi
+
+      - name: Build Android
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: Unity/MueangIsara
+          unityVersion: 6000.0.23f1
+          targetPlatform: Android
+          buildName: MUEANG_ISARA
+          buildsPath: build
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MUEANG-ISARA-Unity-Android
+          path: build/Android/**/*.apk
+          if-no-files-found: error
+          retention-days: 14
