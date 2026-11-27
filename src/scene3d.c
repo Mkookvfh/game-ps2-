@@ -2954,17 +2954,18 @@ if(is_jumping &&
 }
 
     /* Open World Bounds V1 */
-if(player_x < -43.0f)
-    player_x = -43.0f;
+/* Keep the prototype inside the walkable island slice. */
+if(player_x < -27.0f)
+    player_x = -27.0f;
 
-if(player_x > 43.0f)
-    player_x = 43.0f;
+if(player_x > 27.0f)
+    player_x = 27.0f;
 
-if(player_z < -23.0f)
-    player_z = -23.0f;
+if(player_z < -10.0f)
+    player_z = -10.0f;
 
-if(player_z > 63.0f)
-    player_z = 63.0f;
+if(player_z > 52.0f)
+    player_z = 52.0f;
 }
 
 /* Cube */
