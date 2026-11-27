@@ -2852,50 +2852,7 @@ if(climb_pressed &&
         float next_x=player_x+move_x*speed;
         float next_z=player_z+move_z*speed;
 
-        /* Wall collision: front side */
-        if(fabsf(next_x)<2.2f &&
-           player_z<=PLAYER_BLOCK_Z &&
-           next_z>PLAYER_BLOCK_Z &&
-           player_y<WALL_HEIGHT*0.65f)
-        {
-            next_z=PLAYER_BLOCK_Z;
-        }
-
-        /* Wall collision: back side */
-        if(fabsf(next_x)<2.2f &&
-           player_z>=6.25f &&
-           next_z<6.25f &&
-           player_y<WALL_HEIGHT*0.65f)
-        {
-            next_z=6.25f;
-        }
-
-                /* Second wall collision: front side */
-        if(fabsf(next_x)<2.2f &&
-           player_z<=WALL2_BLOCK_Z &&
-           next_z>WALL2_BLOCK_Z &&
-           player_y<WALL2_HEIGHT*0.65f)
-        {
-            next_z=WALL2_BLOCK_Z;
-        }
-
-        /* Second wall collision: back side */
-        if(fabsf(next_x)<2.2f &&
-           player_z>=WALL2_BACK+0.40f &&
-           next_z<WALL2_BACK+0.40f &&
-           player_y<WALL2_HEIGHT*0.65f)
-        {
-            next_z=WALL2_BACK+0.40f;
-        }
-
-
-        /* City Building Collision V1 */
-resolve_city_collision(
-    player_x,
-    player_z,
-    &next_x,
-    &next_z 
-);
+        /* Island prototype: disable old city and parkour collision geometry. */
 
 player_x=next_x;
 player_z=next_z;
@@ -2933,8 +2890,7 @@ player_z=next_z;
     }
 
     /* Jump, rooftop landing and falling */
-float target_ground =
-    city_roof_height(player_x,player_z);
+float target_ground = 0.0f; /* flat island ground prototype */
 
 /* Walk off rooftop */
 if(!is_jumping &&
@@ -3060,6 +3016,21 @@ int visible[8];
     }
 }
 
+/* ISLAND FRONTIER - PS2 FRIENDLY LOW-POLY SCENE */
+static void island_quad(GSGLOBAL *gs,float l,float r,float f,float b,float y,u64 col){Vec3 a={l,y,f},bb={r,y,f},c={r,y,b},d={l,y,b};draw_triangle(gs,a,bb,c,col);draw_triangle(gs,a,c,d,col);}
+static void island_palm(GSGLOBAL *gs,float x,float z,float h){
+ u64 tr=GS_SETREG_RGBAQ(112,76,42,0x80,0),g=GS_SETREG_RGBAQ(38,145,64,0x80,0),g2=GS_SETREG_RGBAQ(62,170,76,0x80,0);float y=-1.45f;draw_rect(gs,x-.12f,y,x+.12f,y+h*.72f,z,tr);
+ Vec3 t={x,y+h,z},a={x-1.1f,y+h*.65f,z-.2f},b={x+1.1f,y+h*.65f,z-.2f},c={x-.8f,y+h*.65f,z+.55f},d={x+.8f,y+h*.65f,z+.55f},e={x,y+h*.6f,z-1},f={x,y+h*.6f,z+1};draw_triangle(gs,a,t,b,g);draw_triangle(gs,c,t,d,g2);draw_triangle(gs,e,t,f,g);draw_triangle(gs,a,t,c,g2);draw_triangle(gs,b,t,d,g);
+}
+static void draw_island_scene(GSGLOBAL *gs){
+ u64 sea=GS_SETREG_RGBAQ(36,145,198,0x80,0),sand=GS_SETREG_RGBAQ(218,190,132,0x80,0),grass=GS_SETREG_RGBAQ(62,145,65,0x80,0),path=GS_SETREG_RGBAQ(165,135,88,0x80,0);
+ island_quad(gs,-48,48,-28,68,-1.52f,sea);island_quad(gs,-30,30,-12,54,-1.49f,sand);island_quad(gs,-25,25,7,54,-1.46f,grass);
+ island_quad(gs,-3,3,5,14,-1.43f,path);island_quad(gs,-6,1.5f,14,24,-1.43f,path);island_quad(gs,-2,4,24,35,-1.43f,path);island_quad(gs,1,7,35,46,-1.43f,path);
+ island_palm(gs,-19,-2,5.2f);island_palm(gs,18,1,5.8f);island_palm(gs,-13,8,4.8f);island_palm(gs,14,12,5);island_palm(gs,-20,22,6);island_palm(gs,-14,28,5.6f);island_palm(gs,17,25,6.2f);island_palm(gs,22,35,5.4f);island_palm(gs,-18,40,6.4f);island_palm(gs,12,45,6);
+ draw_city_building(gs,-8,4,17,3,2.4f,GS_SETREG_RGBAQ(174,112,62,0x80,0),GS_SETREG_RGBAQ(120,80,48,0x80,0),GS_SETREG_RGBAQ(105,55,34,0x80,0),GS_SETREG_RGBAQ(32,65,78,0));
+ draw_city_building(gs,7,4.5f,22,3,2.6f,GS_SETREG_RGBAQ(196,142,78,0x80,0),GS_SETREG_RGBAQ(130,91,55,0x80,0),GS_SETREG_RGBAQ(115,62,36,0x80,0),GS_SETREG_RGBAQ(32,65,78,0));
+ draw_city_building(gs,-2,2.5f,40,2.5f,4,GS_SETREG_RGBAQ(145,105,68,0x80,0),GS_SETREG_RGBAQ(95,70,48,0x80,0),GS_SETREG_RGBAQ(100,58,38,0x80,0),GS_SETREG_RGBAQ(25,55,70,0));
+}
 /* Main */
 int main(void)
 {
@@ -3128,14 +3099,9 @@ while(1) {
     /* Cinematic Sky */
     draw_cinematic_sky(gs,era);
 
-    draw_ground(gs);
-//draw_player_shadow(gs);
-//draw_city_map(gs);
-//draw_outskirts(gs);
-//draw_forest_trail(gs);
-//draw_parkour_wall(gs);
-    //draw_player(gs);
-    //draw_cube(gs,angle);
+    draw_island_scene(gs);
+    draw_player(gs);
+
 
     gsKit_queue_exec(gs);
     gsKit_sync_flip(gs);
